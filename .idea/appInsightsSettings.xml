@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.example.taskjoy" />
+                  <option name="mobileSdkAppId" value="1:890582459964:android:63addf2eab9c7e22dfc539" />
+                  <option name="projectId" value="taskjoy-a6b1f" />
+                  <option name="projectNumber" value="890582459964" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
