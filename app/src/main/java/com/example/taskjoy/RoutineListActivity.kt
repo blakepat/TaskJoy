@@ -1,6 +1,6 @@
 package com.example.taskjoy
 
-import android.annotation.SuppressLint
+
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -12,12 +12,15 @@ import com.example.taskjoy.databinding.ActivityRoutineListBinding
 import com.example.taskjoy.model.RoutineAdapter
 import com.example.taskjoy.model.RoutineClickListener
 import com.example.taskjoy.model.Routine
-import com.example.taskjoy.model.TaskJoyIcon
 import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.firestore.FieldPath
 
 class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
 
@@ -26,12 +29,15 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
     private lateinit var routineAdapter: RoutineAdapter
     private val routineList = mutableListOf<Routine>()
     private var db = Firebase.firestore
+    private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityRoutineListBinding.inflate(layoutInflater)
         setContentView(binding.root)
         supportActionBar!!.setTitle("Routines")
+
+        auth = Firebase.auth
 
         // Initialize RecyclerView
         recyclerView = findViewById(R.id.recyclerViewRoutines)
@@ -52,7 +58,7 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
 
 
         //Get routines from firebase db
-        getRoutines()
+        getEndUserRoutines(auth.currentUser!!.uid)
 
 
     }
@@ -76,22 +82,67 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
     }
 
 
-    @SuppressLint("NotifyDataSetChanged")
-    private fun getRoutines() {
-        db.collection("routines")
-            .get()
-            .addOnSuccessListener { results: QuerySnapshot ->
-                routineList.clear()
 
-                for (document:QueryDocumentSnapshot in results) {
-                    val routineFromDB: Routine = document.toObject(Routine::class.java)
-                    routineList.add(routineFromDB)
+
+    private fun getEndUserRoutines(parentId: String) {
+        // First get the parent document to access their children list
+        Log.w("TESTING", "parentId: $parentId")
+        db.collection("parents").document(parentId)
+            .get()
+            .addOnSuccessListener { parentDoc: DocumentSnapshot ->
+                // Get the list of child (endUser) IDs
+                val childrenIds = parentDoc.get("children") as? List<String>
+                Log.w("TESTING", "childIDs: $childrenIds")
+                if (!childrenIds.isNullOrEmpty()) {
+                    // Query endUsers collection for documents with matching IDs
+                    db.collection("endUser")
+                        .whereIn(FieldPath.documentId(), childrenIds)
+                        .get()
+                        .addOnSuccessListener { endUserResults: QuerySnapshot ->
+                            val allRoutineIds = mutableListOf<String>()
+                            Log.w("TESTING", "routine: $allRoutineIds")
+                            // Collect all routine IDs from each endUser
+                            for (endUserDoc: QueryDocumentSnapshot in endUserResults) {
+                                val routineIds = endUserDoc.get("routines") as? List<String>
+                                if (!routineIds.isNullOrEmpty()) {
+                                    allRoutineIds.addAll(routineIds)
+                                }
+                            }
+
+                            if (allRoutineIds.isNotEmpty()) {
+                                routineList.clear() // Clear existing routines
+
+                                // Finally, query the routines collection
+                                db.collection("routines")
+                                    .whereIn(FieldPath.documentId(), allRoutineIds)
+                                    .get()
+                                    .addOnSuccessListener { routineResults: QuerySnapshot ->
+                                        for (routineDoc: QueryDocumentSnapshot in routineResults) {
+                                            val routineFromDB = routineDoc.toObject(Routine::class.java)
+                                            routineList.add(routineFromDB)
+                                            Log.w("TESTING", "Added routine: ${routineFromDB.id}")
+                                        }
+                                        routineAdapter.notifyDataSetChanged()
+                                        Log.w("TESTING", "Total routines added: ${routineList.size}")
+                                    }
+                                    .addOnFailureListener { error ->
+                                        Log.w("TESTING", "Error getting routines.", error)
+                                        Snackbar.make(binding.root, "Error getting routines",
+                                            Snackbar.LENGTH_SHORT).show()
+                                    }
+                            }
+                        }
+                        .addOnFailureListener { error ->
+                            Log.w("TESTING", "Error getting endUsers.", error)
+                            Snackbar.make(binding.root, "Error getting end users",
+                                Snackbar.LENGTH_SHORT).show()
+                        }
                 }
-                routineAdapter.notifyDataSetChanged()
             }
             .addOnFailureListener { error ->
-                Log.w("TESTING", "Error getting documents.", error)
-                Snackbar.make(binding.root, "Error getting routines", Snackbar.LENGTH_SHORT).show()
+                Log.w("TESTING", "Error getting parent.", error)
+                Snackbar.make(binding.root, "Error getting parent data",
+                    Snackbar.LENGTH_SHORT).show()
             }
     }
 }
