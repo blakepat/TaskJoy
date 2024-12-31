@@ -1,4 +1,4 @@
-package com.example.taskjoy
+package com.example.taskjoy.screens
 
 import android.content.Intent
 import android.os.Bundle
@@ -6,6 +6,7 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
+import com.example.taskjoy.R
 import com.example.taskjoy.databinding.ActivityMainBinding
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
@@ -25,10 +26,31 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         auth = Firebase.auth
-        // Set click listener for the button
+
+        setupClickListeners()
+    }
+
+
+
+    private fun setupClickListeners() {
         binding.buttonToRoutineList.setOnClickListener {
             val intent = Intent(this, RoutineListActivity::class.java)
             startActivity(intent)
+        }
+        binding.buttonChildOneRoutines.setOnClickListener {
+            val intent = Intent(this, RoutineListActivity::class.java)
+            intent.putExtra("endUser", "VVtTNqZPPUTBZu5GTRAQ")
+            startActivity(intent)
+        }
+        binding.buttonChildTwoRoutines.setOnClickListener {
+            val intent = Intent(this, RoutineListActivity::class.java)
+            intent.putExtra("endUser", "kFFPl1Vz4aBNfkjGrFIh")
+            startActivity(intent)
+        }
+        binding.buttonCreateChild.setOnClickListener {
+            //TODO: CREATE CHILD SCREEN
+//            val intent = Intent(this, RoutineListActivity::class.java)
+//            startActivity(intent)
         }
     }
 

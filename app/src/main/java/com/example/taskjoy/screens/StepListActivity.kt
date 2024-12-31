@@ -1,4 +1,4 @@
-package com.example.taskjoy
+package com.example.taskjoy.screens
 
 
 import android.annotation.SuppressLint
@@ -11,8 +11,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.taskjoy.databinding.StepListScreenBinding
 import com.example.taskjoy.model.Routine
 import com.example.taskjoy.model.Step
-import com.example.taskjoy.model.StepAdapter
-import com.example.taskjoy.model.StepClickListener
+import com.example.taskjoy.adapters.StepAdapter
+import com.example.taskjoy.adapters.StepClickListener
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.QueryDocumentSnapshot
@@ -36,9 +36,8 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
 
         //Routine ID used for getting step list from Firebase
         val routineId = intent.getStringExtra("routineId")
-        //TODO: Change title to routine name
-        supportActionBar!!.setTitle("Step List")
 
+        //Setup Recycler view
         stepAdapter = StepAdapter(stepList, this)
         binding.recyclerViewSteps.adapter = stepAdapter
         binding.recyclerViewSteps.layoutManager = LinearLayoutManager(this)
@@ -51,11 +50,16 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
 
 
         getRoutineWithSteps(routineId ?: "")
+
+
+        binding.fabAddStep.setOnClickListener {
+            //TODO: show create/edit step screen
+        }
     }
 
 
 
-    //TODO: show create/edit step screen using plus icon
+
 
 
 
@@ -93,6 +97,9 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
             .get()
             .addOnSuccessListener { routineDoc: DocumentSnapshot ->
                 val routineFromDB: Routine = routineDoc.toObject(Routine::class.java)!!
+
+                supportActionBar!!.setTitle(routineFromDB.name)
+
                 if (routineFromDB.steps.isNotEmpty()) {
                     stepList.clear() // Clear existing steps
 
@@ -105,6 +112,11 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
                                 val stepFromDB: Step = document.toObject(Step::class.java)
                                 stepList.add(stepFromDB)
                             }
+
+                            if (stepList.isEmpty()) {
+                                //TODO: CREATE AN EMPTY LIST VIEW
+                            }
+
                             stepAdapter.notifyDataSetChanged()
                         }
                         .addOnFailureListener { error ->

@@ -1,4 +1,4 @@
-package com.example.taskjoy
+package com.example.taskjoy.screens
 
 import android.os.Bundle
 import android.util.Log
@@ -9,6 +9,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import androidx.core.content.ContextCompat
+import com.example.taskjoy.R
 
 class StepDetailsActivity : AppCompatActivity() {
     private lateinit var binding: ActivityStepDetailsBinding
