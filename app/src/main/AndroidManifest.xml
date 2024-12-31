@@ -20,6 +20,12 @@
             android:name=".MainActivity"
             android:exported="true"/>
         <activity
+            android:name=".TaskListActivity"
+            android:exported="true"/>
+        <activity
+            android:name=".TaskDetailsActivity"
+            android:exported="true"/>
+        <activity
             android:name=".LoginActivity"
             android:exported="true">
             <intent-filter>
