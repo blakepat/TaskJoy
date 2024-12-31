@@ -1,4 +1,4 @@
-package com.example.taskjoy
+package com.example.taskjoy.screens
 
 
 import android.content.Intent
@@ -8,9 +8,10 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.taskjoy.R
 import com.example.taskjoy.databinding.ActivityRoutineListBinding
-import com.example.taskjoy.model.RoutineAdapter
-import com.example.taskjoy.model.RoutineClickListener
+import com.example.taskjoy.adapters.RoutineAdapter
+import com.example.taskjoy.adapters.RoutineClickListener
 import com.example.taskjoy.model.Routine
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
@@ -37,6 +38,7 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
         setContentView(binding.root)
         supportActionBar!!.setTitle("Routines")
 
+        val endUserId = intent.getStringExtra("endUser")
         auth = Firebase.auth
 
         // Initialize RecyclerView
@@ -45,25 +47,20 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
         // Set up the adapter
         routineAdapter = RoutineAdapter(routineList, this, this) // Pass the task list, context, and listener
         recyclerView.adapter = routineAdapter
-        // Prepare the task list
-//        routineList.addAll(
-//            listOf(
-//                Routine("Morning Routine", image = 5, steps = TaskJoyIcon.MORNING),
-//                Routine("School Preparation", image = 3, steps = TaskJoyIcon.SCHOOL),
-//                Routine("Lunch Prep", image = 4, steps = TaskJoyIcon.LUNCH),
-//                Routine("Bedtime Routine", image = 2, steps = TaskJoyIcon.BEDTIME),
-//                Routine("Custom Task", image = 1, steps = TaskJoyIcon.CUSTOM)
-//            )
-//        )
+
+        //Get Routines
+        if (endUserId != null) {
+            getSpecificEndUserRoutines(endUserId)
+        } else {
+            //Get routines from firebase db
+            getAllEndUserRoutines(auth.currentUser!!.uid)
+        }
 
 
-        //Get routines from firebase db
-        getEndUserRoutines(auth.currentUser!!.uid)
-
-
+        binding.fabAddRoutine.setOnClickListener {
+            //TODO: show create/edit routine screen
+        }
     }
-
-    //TODO: show create/edit routine screen using plus icon
 
 
 
@@ -83,8 +80,50 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
 
 
 
+    private fun getSpecificEndUserRoutines(endUserId: String) {
+        db.collection("endUser").document(endUserId)
+            .get()
+            .addOnSuccessListener { endUserDoc: DocumentSnapshot ->
+                val routineIds = endUserDoc.get("routines") as? List<String>
+                Log.w("TESTING", "routine IDs: $routineIds")
 
-    private fun getEndUserRoutines(parentId: String) {
+                if (!routineIds.isNullOrEmpty()) {
+                    routineList.clear() // Clear existing routines
+
+                    db.collection("routines")
+                        .whereIn(FieldPath.documentId(), routineIds)
+                        .get()
+                        .addOnSuccessListener { routineResults: QuerySnapshot ->
+                            for (routineDoc: QueryDocumentSnapshot in routineResults) {
+                                val routineFromDB = routineDoc.toObject(Routine::class.java)
+                                routineList.add(routineFromDB)
+                                Log.w("TESTING", "Added routine: ${routineFromDB.id}")
+                            }
+
+                            if (routineList.isEmpty()) {
+                                //TODO: CREATE AN EMPTY LIST VIEW
+                            }
+
+                            routineAdapter.notifyDataSetChanged()
+                            Log.w("TESTING", "Total routines added: ${routineList.size}")
+                        }
+                        .addOnFailureListener { error ->
+                            Log.w("TESTING", "Error getting routines.", error)
+                            Snackbar.make(binding.root, "Error getting routines",
+                                Snackbar.LENGTH_SHORT).show()
+                        }
+                }
+            }
+            .addOnFailureListener { error ->
+                Log.w("TESTING", "Error getting end user.", error)
+                Snackbar.make(binding.root, "Error getting end user data",
+                    Snackbar.LENGTH_SHORT).show()
+            }
+    }
+
+
+
+    private fun getAllEndUserRoutines(parentId: String) {
         // First get the parent document to access their children list
         Log.w("TESTING", "parentId: $parentId")
         db.collection("parents").document(parentId)
@@ -106,6 +145,8 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
                                 val routineIds = endUserDoc.get("routines") as? List<String>
                                 if (!routineIds.isNullOrEmpty()) {
                                     allRoutineIds.addAll(routineIds)
+                                } else {
+                                    //TODO: CREATE AN EMPTY LIST VIEW
                                 }
                             }
 
@@ -122,6 +163,12 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
                                             routineList.add(routineFromDB)
                                             Log.w("TESTING", "Added routine: ${routineFromDB.id}")
                                         }
+
+                                        if (routineList.isEmpty()) {
+                                            //TODO: CREATE AN EMPTY LIST VIEW
+                                        }
+                                        
+
                                         routineAdapter.notifyDataSetChanged()
                                         Log.w("TESTING", "Total routines added: ${routineList.size}")
                                     }

@@ -6,7 +6,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context=".screens.MainActivity">
 
     <!-- Dashboard Title -->
     <TextView
@@ -26,9 +26,43 @@
         android:id="@+id/buttonToRoutineList"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Go to ROUTINE List"
+        android:text="Get Routines for all children"
         app:layout_constraintTop_toBottomOf="@id/textDashboardTitle"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         android:layout_marginTop="24dp" />
+
+    <!-- Button for Child One Routines -->
+    <Button
+        android:id="@+id/buttonChildOneRoutines"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Get routines for child one"
+        app:layout_constraintTop_toBottomOf="@id/buttonToRoutineList"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="24dp" />
+
+    <!-- Button for Child Two Routines -->
+    <Button
+        android:id="@+id/buttonChildTwoRoutines"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Get routines for child two"
+        app:layout_constraintTop_toBottomOf="@id/buttonChildOneRoutines"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="24dp" />
+
+    <!-- Button to Create Child -->
+    <Button
+        android:id="@+id/buttonCreateChild"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Create child"
+        app:layout_constraintTop_toBottomOf="@id/buttonChildTwoRoutines"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="24dp" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

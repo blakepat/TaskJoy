@@ -1,4 +1,7 @@
-package com.example.taskjoy.model
+package com.example.taskjoy.adapters
+
+import com.example.taskjoy.model.Routine
+import com.example.taskjoy.model.Step
 
 interface RoutineClickListener {
     fun onRoutineClick(routine: Routine)

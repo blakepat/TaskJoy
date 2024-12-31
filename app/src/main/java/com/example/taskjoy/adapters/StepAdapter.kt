@@ -1,11 +1,13 @@
-package com.example.taskjoy.model
+package com.example.taskjoy.adapters
 
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.example.taskjoy.databinding.StepItemBinding
+import com.example.taskjoy.model.Step
+import com.example.taskjoy.model.TaskJoyIcon
 
-class StepAdapter(private var steps: List<Step> ,private val listener: StepClickListener) : RecyclerView.Adapter<StepAdapter.ViewHolder>() {
+class StepAdapter(private var steps: List<Step>, private val listener: StepClickListener) : RecyclerView.Adapter<StepAdapter.ViewHolder>() {
     inner class ViewHolder(val binding: StepItemBinding) : RecyclerView.ViewHolder (binding.root) {
 
     }

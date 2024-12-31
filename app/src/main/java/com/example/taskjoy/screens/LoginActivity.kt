@@ -1,4 +1,4 @@
-package com.example.taskjoy
+package com.example.taskjoy.screens
 
 import android.content.Intent
 import android.os.Bundle

@@ -1,4 +1,4 @@
-package com.example.taskjoy.model
+package com.example.taskjoy.adapters
 
 import android.content.Context
 import android.view.LayoutInflater
@@ -8,6 +8,8 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.taskjoy.R
+import com.example.taskjoy.model.Routine
+import com.example.taskjoy.model.TaskJoyIcon
 
 class RoutineAdapter(
     private val routines: List<Routine>,
