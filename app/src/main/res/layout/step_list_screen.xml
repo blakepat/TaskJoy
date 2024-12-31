@@ -7,20 +7,9 @@
     android:layout_margin="12dp"
     android:padding="12dp">
 
-    <!-- Title -->
-    <TextView
-        android:id="@+id/tvTitle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Task's list"
-        android:textColor="#00A8AE"
-        android:textSize="20sp"
-        android:gravity="center"
-        android:layout_marginBottom="16dp" />
-
     <!-- RecyclerView  -->
     <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerViewTasks"
+        android:id="@+id/recyclerViewSteps"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
@@ -32,25 +21,16 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <!-- Back Floating btn -->
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fabBack"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:src="@drawable/ic_back"
-            android:layout_gravity="bottom|start"
-            android:layout_margin="16dp"
-            android:contentDescription="Back" />
 
         <!-- Add Floating btn -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/fabAddActivity"
+            android:id="@+id/fabAddStep"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_add"
             android:layout_gravity="bottom|end"
             android:layout_margin="16dp"
-            android:contentDescription="Add Activity" />
+            android:contentDescription="Add Step" />
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 

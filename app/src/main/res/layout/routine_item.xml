@@ -9,7 +9,7 @@
 
     <!-- Icon -->
     <ImageView
-        android:id="@+id/task_icon"
+        android:id="@+id/routine_icon"
         android:layout_width="40dp"
         android:layout_height="40dp"
         app:layout_constraintStart_toStartOf="parent"
@@ -20,35 +20,35 @@
 
     <!-- Task Name -->
     <TextView
-        android:id="@+id/task_name"
+        android:id="@+id/routine_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="Task Name"
         android:textColor="#000000"
         android:textSize="16sp"
         android:textStyle="bold"
-        app:layout_constraintStart_toEndOf="@id/task_icon"
+        app:layout_constraintStart_toEndOf="@id/routine_icon"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/task_edit_icon"
+        app:layout_constraintEnd_toStartOf="@id/routine_edit_icon"
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp" />
 
     <!-- Step Quantity -->
     <TextView
-        android:id="@+id/task_step_quantity"
+        android:id="@+id/routine_step_quantity"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:text="3 steps"
         android:textColor="#000000"
         android:textSize="14sp"
-        app:layout_constraintStart_toStartOf="@id/task_name"
-        app:layout_constraintTop_toBottomOf="@id/task_name"
-        app:layout_constraintEnd_toEndOf="@id/task_name"
+        app:layout_constraintStart_toStartOf="@id/routine_name"
+        app:layout_constraintTop_toBottomOf="@id/routine_name"
+        app:layout_constraintEnd_toEndOf="@id/routine_name"
         android:layout_marginTop="4dp" />
 
     <!-- Edit Icon -->
     <ImageView
-        android:id="@+id/task_edit_icon"
+        android:id="@+id/routine_edit_icon"
         android:layout_width="24dp"
         android:layout_height="24dp"
         android:layout_marginStart="8dp"

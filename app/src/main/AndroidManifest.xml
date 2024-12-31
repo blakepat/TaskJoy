@@ -20,10 +20,13 @@
             android:name=".MainActivity"
             android:exported="true"/>
         <activity
-            android:name=".TaskListActivity"
+            android:name=".RoutineListActivity"
             android:exported="true"/>
         <activity
-            android:name=".TaskDetailsActivity"
+            android:name=".StepDetailsActivity"
+            android:exported="true"/>
+        <activity
+            android:name=".StepListActivity"
             android:exported="true"/>
         <activity
             android:name=".LoginActivity"
