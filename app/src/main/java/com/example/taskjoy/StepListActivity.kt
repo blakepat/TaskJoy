@@ -4,7 +4,6 @@ package com.example.taskjoy
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -14,10 +13,8 @@ import com.example.taskjoy.model.Routine
 import com.example.taskjoy.model.Step
 import com.example.taskjoy.model.StepAdapter
 import com.example.taskjoy.model.StepClickListener
-import com.example.taskjoy.model.TaskJoyIcon
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.ktx.firestore
@@ -64,9 +61,20 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
 
 
     // Click listener methods
+//    override fun onStepClick(step: Step) {
+//        val intent = Intent(this, StepDetailsActivity::class.java).apply {
+//            putExtra("stepId", step.id)
+//        }
+//        startActivity(intent)
+//    }
     override fun onStepClick(step: Step) {
+        val currentPosition = stepList.indexOf(step)
+        val stepIds = stepList.map { it.id }
+
         val intent = Intent(this, StepDetailsActivity::class.java).apply {
             putExtra("stepId", step.id)
+            putExtra("currentPosition", currentPosition)
+            putStringArrayListExtra("stepIds", ArrayList(stepIds))
         }
         startActivity(intent)
     }
@@ -79,14 +87,12 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
     }
 
     //get routine from firebase with id passed. THEN get steps stored inside using stored ids
+    @SuppressLint("NotifyDataSetChanged")
     private fun getRoutineWithSteps(routineId: String) {
         db.collection("routines").document(routineId)
             .get()
             .addOnSuccessListener { routineDoc: DocumentSnapshot ->
                 val routineFromDB: Routine = routineDoc.toObject(Routine::class.java)!!
-
-                Log.w("TESTING", "Steps in routine: ${routineFromDB.steps}")
-
                 if (routineFromDB.steps.isNotEmpty()) {
                     stepList.clear() // Clear existing steps
 
@@ -98,20 +104,16 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
                             for (document: QueryDocumentSnapshot in results) {
                                 val stepFromDB: Step = document.toObject(Step::class.java)
                                 stepList.add(stepFromDB)
-                                Log.w("TESTING", "Added step: ${stepFromDB.id}")
                             }
                             stepAdapter.notifyDataSetChanged()
-                            Log.w("TESTING", "Total steps added: ${stepList.size}")
                         }
                         .addOnFailureListener { error ->
-                            Log.w("TESTING", "Error getting steps.", error)
-                            Snackbar.make(binding.root, "Error getting steps", Snackbar.LENGTH_SHORT).show()
+                            Snackbar.make(binding.root, "Error getting steps $error", Snackbar.LENGTH_SHORT).show()
                         }
                 }
             }
             .addOnFailureListener { error ->
-                Log.w("TESTING", "Error getting routine.", error)
-                Snackbar.make(binding.root, "Error getting routine", Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(binding.root, "Error getting routine $error", Snackbar.LENGTH_SHORT).show()
             }
     }
 

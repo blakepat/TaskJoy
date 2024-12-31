@@ -3,21 +3,20 @@ package com.example.taskjoy
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.GridLayoutManager
-import com.example.taskjoy.model.RoutineAdapter
 import com.example.taskjoy.databinding.ActivityStepDetailsBinding
-import com.example.taskjoy.model.Routine
 import com.example.taskjoy.model.Step
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import androidx.core.content.ContextCompat
 
 class StepDetailsActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityStepDetailsBinding
-    val db = Firebase.firestore
+    private val db = Firebase.firestore
+    private lateinit var step: Step
 
-    lateinit var step: Step
+    private var currentPosition: Int = 0
+    private lateinit var stepIds: ArrayList<String>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -25,20 +24,43 @@ class StepDetailsActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val stepId = intent.getStringExtra("stepId")
+        currentPosition = intent.getIntExtra("currentPosition", 0)
+        stepIds = intent.getStringArrayListExtra("stepIds") ?: arrayListOf()
 
-        //TODO: CREATE CARD WITH NAME AND ICON.
+        // Set up navigation button click listeners
+        binding.btnPrevStep.setOnClickListener {
+            if (currentPosition > 0) {
+                loadStep(stepIds[currentPosition - 1], currentPosition - 1)
+            }
+        }
 
+        binding.btnNextStep.setOnClickListener {
+            if (currentPosition < stepIds.size - 1) {
+                loadStep(stepIds[currentPosition + 1], currentPosition + 1)
+            } else {
+                // This is the last step - you might want to show completion UI or return to list
+                finish()
+            }
+        }
 
-
-        //TODO: MAKE RIGHT BUTTON COMPLETE ACTIVITY AND GO TO NEXT
-
-
-
-        //TODO: MAKE LEFT BUTTON GO BACK TO PREVIOUS ACTIVITY (IF ANY)
-
-
-        //gets step from firebase using ID passed from step list activity
         getStep(stepId ?: "")
+    }
+
+    private fun loadStep(stepId: String, newPosition: Int) {
+        currentPosition = newPosition
+        getStep(stepId)
+        updateNavigationButtons()
+    }
+
+    private fun updateNavigationButtons() {
+        // Update button states based on position
+        binding.btnPrevStep.isEnabled = currentPosition > 0
+        binding.btnNextStep.setImageDrawable(
+            ContextCompat.getDrawable(
+                this,
+                if (currentPosition == stepIds.size - 1) R.drawable.ic_checkmark else R.drawable.ic_forward
+            )
+        )
     }
 
     private fun getStep(stepId: String) {
@@ -49,8 +71,8 @@ class StepDetailsActivity : AppCompatActivity() {
                 if (document != null && document.exists()) {
                     val stepFromDB: Step = document.toObject(Step::class.java)!!
                     step = stepFromDB
-
                     setupUI()
+                    updateNavigationButtons()
                 } else {
                     Log.w("TESTING", "No such document")
                     Snackbar.make(binding.root, "Step not found", Snackbar.LENGTH_SHORT).show()
@@ -62,9 +84,8 @@ class StepDetailsActivity : AppCompatActivity() {
             }
     }
 
-
-    //TODO: SETUP UI WITH STEP FROM DB
     private fun setupUI() {
         binding.textStepTitle.text = step.name
+        // Add other UI setup code here
     }
 }
