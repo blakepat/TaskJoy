@@ -8,9 +8,8 @@ import com.example.taskjoy.model.Step
 import com.example.taskjoy.model.TaskJoyIcon
 
 class StepAdapter(private var steps: List<Step>, private val listener: StepClickListener) : RecyclerView.Adapter<StepAdapter.ViewHolder>() {
-    inner class ViewHolder(val binding: StepItemBinding) : RecyclerView.ViewHolder (binding.root) {
+    inner class ViewHolder(val binding: StepItemBinding) : RecyclerView.ViewHolder (binding.root) {}
 
-    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = StepItemBinding.inflate(LayoutInflater.from(parent.context), parent, false)
