@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_margin="12dp"
+    android:gravity="bottom"
+    android:padding="12dp"
+    android:orientation="vertical"
+    >
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="80dp"
+        android:layout_marginBottom="80dp"
+        android:src="@color/cardview_dark_background"/>
+
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:textColor="#353434"
+            android:text="Create account for child user:"
+            />
+
+        <EditText
+            android:id="@+id/etChildName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="enter child name"
+            android:textColorHint="#C3C2C2"
+            android:minHeight="48dp"
+            android:elevation="2dp"
+            android:background="@drawable/edit_text_background"
+            android:drawableEnd="@drawable/email_icon"
+            android:padding="16dp"
+            android:textColor="@color/black"
+            android:layout_marginVertical="4dp"
+            />
+
+        <EditText
+            android:id="@+id/etChildAge"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="enter child age"
+            android:textColorHint="#C3C2C2"
+            android:minHeight="48dp"
+            android:elevation="2dp"
+            android:background="@drawable/edit_text_background"
+            android:drawableEnd="@drawable/email_icon"
+            android:padding="16dp"
+            android:textColor="@color/black"
+            android:layout_marginVertical="4dp"
+            />
+
+    <Button
+        android:id="@+id/btnAddChild"
+        android:elevation="4dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/white"
+        android:layout_marginVertical="16dp"
+        android:background="@drawable/button_background"
+        android:text="Add Child!"/>
+
+</LinearLayout>

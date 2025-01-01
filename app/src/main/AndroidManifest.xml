@@ -29,6 +29,9 @@
             android:name=".screens.StepListActivity"
             android:exported="true"/>
         <activity
+            android:name=".screens.CreateChildActivity"
+            android:exported="true"/>
+        <activity
             android:name=".screens.LoginActivity"
             android:exported="true">
             <intent-filter>
