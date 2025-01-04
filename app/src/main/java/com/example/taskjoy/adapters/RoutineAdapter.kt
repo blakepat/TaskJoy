@@ -17,22 +17,37 @@ class RoutineAdapter(
     private val listener: RoutineClickListener
 ) : RecyclerView.Adapter<RoutineAdapter.TaskViewHolder>() {
 
+    private var isEditMode = false
+
     inner class TaskViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val icon: ImageView = itemView.findViewById(R.id.routine_icon)
         private val name: TextView = itemView.findViewById(R.id.routine_name)
         private val stepQuantity: TextView = itemView.findViewById(R.id.routine_step_quantity)
         private val editIcon: ImageView = itemView.findViewById(R.id.routine_edit_icon)
+        private val completionIndicator: ImageView = itemView.findViewById(R.id.routine_completion_indicator)
 
         fun bind(routine: Routine) {
             name.text = routine.name
             stepQuantity.text = "${routine.steps.size} steps"
             icon.setImageResource(TaskJoyIcon.fromString(routine.image).getDrawableResource())
 
+            // Handle edit icon visibility based on edit mode
+            editIcon.visibility = if (isEditMode) View.VISIBLE else View.GONE
+
+            // Handle completion indicator
+            completionIndicator.visibility = if (routine.completed && !isEditMode) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            }
+
             // Set click listeners
             itemView.setOnClickListener {
                 listener.onRoutineClick(routine)
             }
-            editIcon.setOnClickListener { listener.onEditClick(routine) }
+            editIcon.setOnClickListener {
+                listener.onEditClick(routine)
+            }
         }
     }
 
@@ -47,4 +62,8 @@ class RoutineAdapter(
 
     override fun getItemCount(): Int = routines.size
 
+    fun setEditMode(enabled: Boolean) {
+        isEditMode = enabled
+        notifyDataSetChanged()
+    }
 }

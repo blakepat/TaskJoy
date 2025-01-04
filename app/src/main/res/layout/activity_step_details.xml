@@ -1,55 +1,110 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:layout_gravity="center"
     android:layout_margin="12dp"
     android:padding="12dp">
 
     <!-- Title -->
     <TextView
         android:id="@+id/textStepTitle"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
+        android:textAlignment="center"
         android:layout_height="wrap_content"
         android:text="Step Title"
-        android:textSize="24sp"
+        android:textSize="36sp"
         android:textStyle="bold"
+        android:layout_marginTop="20dp"
         android:layout_marginBottom="16dp" />
 
-    <!-- RecyclerView for steps -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerViewSteps"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        />
+    <!-- Completion Status -->
+    <LinearLayout
+        android:id="@+id/completionStatusContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="@drawable/rounded_background"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/completionIcon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_checkmark"
+            android:layout_marginEnd="8dp"/>
+
+        <TextView
+            android:id="@+id/completionText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Completed"
+            android:textSize="16sp"
+            android:textStyle="bold"/>
+    </LinearLayout>
+
+    <!-- Reset Button -->
+    <Button
+        android:id="@+id/btnResetCompletion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="Mark as Incomplete"
+        android:layout_marginTop="8dp"
+        android:visibility="gone"/>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_marginBottom="60dp"
+        android:layout_marginTop="40dp"
+        app:cardCornerRadius="100dp"
+        app:cardElevation="10dp"
+        android:layout_gravity="center"
+        app:cardBackgroundColor="#FB0093FB">
+
+        <ImageView
+            android:id="@+id/stepImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="16dp"
+            android:src="@drawable/ic_bedtime"
+            android:scaleType="fitCenter"/>
+
+    </androidx.cardview.widget.CardView>
 
     <!-- Floating btn -->
     <androidx.coordinatorlayout.widget.CoordinatorLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        >
+        android:layout_gravity="bottom">
 
         <!-- Back Floating btn -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnPrevStep"
+            android:backgroundTint="#FFEB3B"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_back"
             android:layout_gravity="bottom|start"
             android:layout_margin="16dp"
-            android:contentDescription="Back" />
+            android:contentDescription="Back"
+            android:src="@drawable/ic_back" />
 
         <!-- Add Floating btn -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnNextStep"
+            android:backgroundTint="#DD18EF11"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:src="@drawable/ic_forward"
             android:layout_gravity="bottom|end"
             android:layout_margin="16dp"
-            android:contentDescription="Add Activity" />
+            android:contentDescription="Add Activity"
+            android:src="@drawable/ic_checkmark" />
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 </LinearLayout>

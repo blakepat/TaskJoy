@@ -1,13 +1,12 @@
 package com.example.taskjoy.screens
 
-
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
+import android.view.Menu
+import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.example.taskjoy.R
 import com.example.taskjoy.databinding.ActivityRoutineListBinding
 import com.example.taskjoy.adapters.RoutineAdapter
@@ -25,47 +24,52 @@ import com.google.firebase.firestore.FieldPath
 
 class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
 
-    lateinit var binding: ActivityRoutineListBinding
-    private lateinit var recyclerView: RecyclerView
+    private lateinit var binding: ActivityRoutineListBinding
     private lateinit var routineAdapter: RoutineAdapter
     private val routineList = mutableListOf<Routine>()
-    private var db = Firebase.firestore
+    private var isEditMode = false
+    private val db = Firebase.firestore
     private lateinit var auth: FirebaseAuth
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityRoutineListBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        supportActionBar!!.setTitle("Routines")
+        supportActionBar?.setTitle("Routines")  // Changed !! to ?
 
         val endUserId = intent.getStringExtra("endUser")
         auth = Firebase.auth
 
-        // Initialize RecyclerView
-        recyclerView = findViewById(R.id.recyclerViewRoutines)
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        // Set up the adapter
-        routineAdapter = RoutineAdapter(routineList, this, this) // Pass the task list, context, and listener
-        recyclerView.adapter = routineAdapter
+        setupRecyclerView()
+        setupClickListeners()
 
-        //Get Routines
+        // Get Routines
         if (endUserId != null) {
             getSpecificEndUserRoutines(endUserId)
         } else {
-            //Get routines from firebase db
-            getAllEndUserRoutines(auth.currentUser!!.uid)
+            auth.currentUser?.uid?.let { uid ->  // Safe call added
+                getAllEndUserRoutines(uid)
+            } ?: run {
+                Snackbar.make(binding.root, "Error: User not authenticated", Snackbar.LENGTH_SHORT).show()
+            }
         }
+    }
 
+    private fun setupRecyclerView() {
+        routineAdapter = RoutineAdapter(routineList, this, this)
+        binding.recyclerViewRoutines.apply {
+            layoutManager = LinearLayoutManager(this@RoutineListActivity)
+            adapter = routineAdapter
+        }
+    }
 
+    private fun setupClickListeners() {
         binding.fabAddRoutine.setOnClickListener {
             val intent = Intent(this, CreateRoutineActivity::class.java)
             startActivity(intent)
         }
     }
 
-
-
-    // Click listener methods
     override fun onRoutineClick(routine: Routine) {
         val intent = Intent(this, StepListActivity::class.java)
         intent.putExtra("routineId", routine.id)
@@ -78,121 +82,105 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
         startActivity(intent)
     }
 
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.routine_list_menu, menu)
+        return true
+    }
 
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_toggle_edit -> {
+                isEditMode = !isEditMode
+                item.setIcon(if (isEditMode) R.drawable.ic_checkmark else R.drawable.ic_edit)
+                routineAdapter.setEditMode(isEditMode)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
 
     private fun getSpecificEndUserRoutines(endUserId: String) {
         db.collection("endUser").document(endUserId)
             .get()
             .addOnSuccessListener { endUserDoc: DocumentSnapshot ->
                 val routineIds = endUserDoc.get("routines") as? List<String>
-                Log.w("TESTING", "routine IDs: $routineIds")
 
                 if (!routineIds.isNullOrEmpty()) {
-                    routineList.clear() // Clear existing routines
+                    routineList.clear()
 
                     db.collection("routines")
                         .whereIn(FieldPath.documentId(), routineIds)
                         .get()
                         .addOnSuccessListener { routineResults: QuerySnapshot ->
                             for (routineDoc: QueryDocumentSnapshot in routineResults) {
-                                val routineFromDB = routineDoc.toObject(Routine::class.java)
-                                routineList.add(routineFromDB)
-                                Log.w("TESTING", "Added routine: ${routineFromDB.id}")
+                                routineDoc.toObject(Routine::class.java).let { routine ->
+                                    routine.id = routineDoc.id  // Ensure ID is set
+                                    routineList.add(routine)
+                                }
                             }
-
-                            if (routineList.isEmpty()) {
-                                //TODO: CREATE AN EMPTY LIST VIEW
-                            }
-
                             routineAdapter.notifyDataSetChanged()
-                            Log.w("TESTING", "Total routines added: ${routineList.size}")
                         }
                         .addOnFailureListener { error ->
-                            Log.w("TESTING", "Error getting routines.", error)
-                            Snackbar.make(binding.root, "Error getting routines",
+                            Snackbar.make(binding.root, "Error getting routines: ${error.message}",
                                 Snackbar.LENGTH_SHORT).show()
                         }
                 }
             }
             .addOnFailureListener { error ->
-                Log.w("TESTING", "Error getting end user.", error)
-                Snackbar.make(binding.root, "Error getting end user data",
+                Snackbar.make(binding.root, "Error getting end user data: ${error.message}",
                     Snackbar.LENGTH_SHORT).show()
             }
     }
 
-
-
     private fun getAllEndUserRoutines(parentId: String) {
-        // First get the parent document to access their children list
-        Log.w("TESTING", "parentId: $parentId")
         db.collection("parents").document(parentId)
             .get()
             .addOnSuccessListener { parentDoc: DocumentSnapshot ->
-                // Get the list of child (endUser) IDs
                 val childrenIds = parentDoc.get("children") as? List<String>
-                Log.w("TESTING", "childIDs: $childrenIds")
+
                 if (!childrenIds.isNullOrEmpty()) {
-                    // Query endUsers collection for documents with matching IDs
                     db.collection("endUser")
                         .whereIn(FieldPath.documentId(), childrenIds)
                         .get()
                         .addOnSuccessListener { endUserResults: QuerySnapshot ->
                             val allRoutineIds = mutableListOf<String>()
-                            Log.w("TESTING", "routine: $allRoutineIds")
-                            // Collect all routine IDs from each endUser
+
                             for (endUserDoc: QueryDocumentSnapshot in endUserResults) {
-                                val routineIds = endUserDoc.get("routines") as? List<String>
-                                if (!routineIds.isNullOrEmpty()) {
+                                (endUserDoc.get("routines") as? List<String>)?.let { routineIds ->
                                     allRoutineIds.addAll(routineIds)
-                                } else {
-                                    //TODO: CREATE AN EMPTY LIST VIEW
                                 }
                             }
 
                             if (allRoutineIds.isNotEmpty()) {
-                                routineList.clear() // Clear existing routines
+                                routineList.clear()
 
-                                // Finally, query the routines collection
                                 db.collection("routines")
                                     .whereIn(FieldPath.documentId(), allRoutineIds)
                                     .get()
                                     .addOnSuccessListener { routineResults: QuerySnapshot ->
                                         for (routineDoc: QueryDocumentSnapshot in routineResults) {
-                                            val routineFromDB = routineDoc.toObject(Routine::class.java)
-                                            routineList.add(routineFromDB)
-                                            Log.w("TESTING", "Added routine: ${routineFromDB.id}")
+                                            routineDoc.toObject(Routine::class.java).let { routine ->
+                                                routine.id = routineDoc.id  // Ensure ID is set
+                                                routineList.add(routine)
+                                            }
                                         }
-
-                                        if (routineList.isEmpty()) {
-                                            //TODO: CREATE AN EMPTY LIST VIEW
-                                        }
-                                        
-
                                         routineAdapter.notifyDataSetChanged()
-                                        Log.w("TESTING", "Total routines added: ${routineList.size}")
                                     }
                                     .addOnFailureListener { error ->
-                                        Log.w("TESTING", "Error getting routines.", error)
-                                        Snackbar.make(binding.root, "Error getting routines",
+                                        Snackbar.make(binding.root, "Error getting routines: ${error.message}",
                                             Snackbar.LENGTH_SHORT).show()
                                     }
                             }
                         }
                         .addOnFailureListener { error ->
-                            Log.w("TESTING", "Error getting endUsers.", error)
-                            Snackbar.make(binding.root, "Error getting end users",
+                            Snackbar.make(binding.root, "Error getting end users: ${error.message}",
                                 Snackbar.LENGTH_SHORT).show()
                         }
                 }
             }
             .addOnFailureListener { error ->
-                Log.w("TESTING", "Error getting parent.", error)
-                Snackbar.make(binding.root, "Error getting parent data",
+                Snackbar.make(binding.root, "Error getting parent data: ${error.message}",
                     Snackbar.LENGTH_SHORT).show()
             }
     }
 }
-
-
-

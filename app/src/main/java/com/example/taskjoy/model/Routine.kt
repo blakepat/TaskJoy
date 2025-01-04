@@ -10,5 +10,5 @@ data class Routine(
     var steps: MutableList<String> = mutableListOf(),
     var completed: Boolean = false,
     @DocumentId
-    val id: String = "",
+    var id: String = "",
 )
