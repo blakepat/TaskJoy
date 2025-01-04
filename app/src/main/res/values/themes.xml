@@ -4,9 +4,9 @@
         <!-- Customize your light theme here. -->
         <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
 
-        <item name="colorPrimary">#00A8AE</item>
+        <item name="colorPrimary">#FB0093FB</item>
         <!-- Optional: Darker shade for the status bar -->
-        <item name="colorPrimaryDark">#00A8AE</item>
+        <item name="colorPrimaryDark">#FB0093FB</item>
         <!-- Optional: Accent color for widgets -->
         <item name="colorAccent">#FFC107</item>
 

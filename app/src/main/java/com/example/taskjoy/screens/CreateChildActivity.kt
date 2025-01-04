@@ -1,7 +1,10 @@
 package com.example.taskjoy.screens
 
 import android.os.Bundle
+import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import com.example.taskjoy.databinding.CreateChildScreenBinding
 import com.example.taskjoy.model.EndUser
 import com.example.taskjoy.model.Parent
@@ -9,6 +12,7 @@ import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.auth.User
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
@@ -25,6 +29,7 @@ class CreateChildActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         auth = Firebase.auth
+        val id = intent.getStringExtra("endUser")
 
 
         binding.btnAddChild.setOnClickListener {
@@ -32,6 +37,24 @@ class CreateChildActivity : AppCompatActivity() {
                 addEndUserToParent(endUserId)
             }
         }
+
+        binding.btnUpdateChild.setOnClickListener {
+            id?.let { it1 -> updateEndUser(it1) }
+        }
+
+        if (id != null) {
+            Log.w("TESTING", "id: $id")
+            updateUserUI(id)
+        }
+    }
+
+
+    private fun updateUserUI(id: String) {
+        getEndUser(id)
+        binding.btnAddChild.isEnabled = false
+        binding.btnAddChild.isVisible = false
+        binding.btnUpdateChild.isEnabled = true
+        binding.btnUpdateChild.isVisible = true
     }
 
 
@@ -47,6 +70,46 @@ class CreateChildActivity : AppCompatActivity() {
 
         endUserRef.set(endUser)
         return endUserRef.id
+    }
+
+    private fun updateEndUser(endUserId: String) {
+        val updates = mapOf(
+            "name" to binding.etChildName.text.toString(),
+            "age" to binding.etChildAge.text.toString().toInt()
+        )
+
+        db.collection("endUser")
+            .document(endUserId)
+            .update(updates)
+            .addOnSuccessListener {
+                Toast.makeText(this, "User updated successfully", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Failed to update user: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+
+    private fun getEndUser(endUserId: String) {
+        db.collection("endUser")
+            .document(endUserId)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    val user: EndUser? = document.toObject(EndUser::class.java)
+
+                    if (user != null) {
+                        binding.etChildAge.setText(user.age.toString())
+                        binding.etChildName.setText(user.name)
+                    }
+                } else {
+                    Log.w("TESTING", "failure getting endUser document")
+                }
+            }
+            .addOnFailureListener { exception ->
+                Log.w("TESTING", "failure getting endUser: $exception")
+            }
     }
 
 

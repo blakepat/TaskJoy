@@ -37,9 +37,13 @@ class ChildAdapter(private val children: List<EndUser>, private val listener: Ch
         holder.binding.root.setOnClickListener {
             listener.onChildClick(child.id)
         }
+        holder.binding.btnEdit.setOnClickListener {
+            listener.onEditClick(child.id)
+        }
         holder.binding.btnDelete.setOnClickListener {
             listener.onDeleteClick(child.id)
         }
+
     }
 
 }

@@ -104,6 +104,12 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
         startActivity(intent)
     }
 
+    override fun onEditClick(id: String) {
+        val intent = Intent(this, CreateChildActivity::class.java)
+        intent.putExtra("endUser", id)
+        startActivity(intent)
+    }
+
     override fun onDeleteClick(id: String) {
         removeEndUserFromParent(auth.currentUser!!.uid, id)
     }

@@ -29,6 +29,12 @@
             android:name=".screens.StepListActivity"
             android:exported="true"/>
         <activity
+            android:name=".screens.CreateStepActivity"
+            android:exported="true"/>
+        <activity
+            android:name=".screens.CreateRoutineActivity"
+            android:exported="true"/>
+        <activity
             android:name=".screens.CreateChildActivity"
             android:exported="true"/>
         <activity

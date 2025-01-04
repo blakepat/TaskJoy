@@ -15,5 +15,6 @@ interface StepClickListener {
 
 interface ChildClickListener {
     fun onChildClick(id: String)
+    fun onEditClick(id: String)
     fun onDeleteClick(id: String)
 }

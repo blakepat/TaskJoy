@@ -31,5 +31,8 @@ class StepAdapter(private var steps: List<Step>, private val listener: StepClick
         holder.binding.root.setOnClickListener {
             listener.onStepClick(currItem)
         }
+        holder.binding.stepEditIcon.setOnClickListener {
+            listener.onEditClick(currItem)
+        }
     }
 }

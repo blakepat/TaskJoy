@@ -58,7 +58,8 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
 
 
         binding.fabAddRoutine.setOnClickListener {
-            //TODO: show create/edit routine screen
+            val intent = Intent(this, CreateRoutineActivity::class.java)
+            startActivity(intent)
         }
     }
 
@@ -67,15 +68,14 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
     // Click listener methods
     override fun onRoutineClick(routine: Routine) {
         val intent = Intent(this, StepListActivity::class.java)
-        //PASS ROUTINE ID TO NEXT SCREEN
         intent.putExtra("routineId", routine.id)
         startActivity(intent)
     }
 
     override fun onEditClick(routine: Routine) {
-        //TODO: Show create/edit screen to edit selected routine
-
-        Toast.makeText(this, "Edit Step: ${routine.name}", Toast.LENGTH_SHORT).show()
+        val intent = Intent(this, CreateRoutineActivity::class.java)
+        intent.putExtra("routineId", routine.id)
+        startActivity(intent)
     }
 
 

@@ -26,6 +26,7 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
     lateinit var binding: StepListScreenBinding
     private lateinit var stepAdapter: StepAdapter
     private var db = Firebase.firestore
+    private var routineId: String = ""
 
     private var stepList: MutableList<Step> = mutableListOf()
 
@@ -35,7 +36,7 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
         setContentView(binding.root)
 
         //Routine ID used for getting step list from Firebase
-        val routineId = intent.getStringExtra("routineId")
+        routineId = intent.getStringExtra("routineId").toString()
 
         //Setup Recycler view
         stepAdapter = StepAdapter(stepList, this)
@@ -53,7 +54,9 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
 
 
         binding.fabAddStep.setOnClickListener {
-            //TODO: show create/edit step screen
+            val intent = Intent(this, CreateStepActivity::class.java)
+            intent.putExtra("routineId", routineId) // Required
+            startActivity(intent)
         }
     }
 
@@ -84,10 +87,10 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
     }
 
     override fun onEditClick(step: Step) {
-        //TODO: Show create/edit screen to edit selected step
-
-
-        Toast.makeText(this, "Edit Step: ${step.name}", Toast.LENGTH_SHORT).show()
+        val intent = Intent(this, CreateStepActivity::class.java)
+        intent.putExtra("routineId", routineId)
+        intent.putExtra("stepId", step.id)
+        startActivity(intent)
     }
 
     //get routine from firebase with id passed. THEN get steps stored inside using stored ids
