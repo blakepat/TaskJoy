@@ -68,12 +68,12 @@ class StepDetailsActivity : AppCompatActivity() {
         binding.btnPrevStep.isEnabled = currentPosition > 0
         binding.btnNextStep.apply {
             isEnabled = true // Always enabled
-            setImageDrawable(
-                ContextCompat.getDrawable(
-                    this@StepDetailsActivity,
-                    if (currentPosition == stepIds.size - 1) R.drawable.ic_checkmark else R.drawable.ic_forward
-                )
-            )
+//            setImageDrawable(
+//                ContextCompat.getDrawable(
+//                    this@StepDetailsActivity,
+//                    if (currentPosition == stepIds.size - 1) R.drawable.ic_checkmark else R.drawable.ic_forward
+//                )
+//            )
         }
     }
 

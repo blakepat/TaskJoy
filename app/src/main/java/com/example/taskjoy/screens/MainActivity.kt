@@ -12,32 +12,29 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.taskjoy.R
 import com.example.taskjoy.adapters.ChildAdapter
 import com.example.taskjoy.adapters.ChildClickListener
-import com.example.taskjoy.adapters.StepAdapter
 import com.example.taskjoy.databinding.ActivityMainBinding
 import com.example.taskjoy.model.EndUser
 import com.example.taskjoy.model.Parent
-import com.example.taskjoy.model.Routine
-import com.example.taskjoy.model.Step
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldPath
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : AppCompatActivity(), ChildClickListener {
 
     private lateinit var binding: ActivityMainBinding
-
-    var db = Firebase.firestore
+    private var db = Firebase.firestore
     private lateinit var auth: FirebaseAuth
     private var childList = mutableListOf<EndUser>()
     private lateinit var childAdapter: ChildAdapter
-
+    private lateinit var selectedDate: Calendar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,27 +42,32 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
         setContentView(binding.root)
 
         auth = Firebase.auth
+        selectedDate = Calendar.getInstance()
 
+        setupRecyclerView()
+        setupCalendar()
         setupClickListeners()
-
-
-
-        //Setup Recycler view
-        childAdapter = ChildAdapter(childList, this)
-        binding.childRecyclerView.adapter = childAdapter
-        binding.childRecyclerView.layoutManager = LinearLayoutManager(this)
-        binding.childRecyclerView.addItemDecoration(
-            DividerItemDecoration(
-                this,
-                LinearLayoutManager.VERTICAL
-            )
-        )
+        updateCurrentDateDisplay()
     }
 
+    private fun setupRecyclerView() {
+        childAdapter = ChildAdapter(childList, this)
+        binding.childRecyclerView.apply {
+            adapter = childAdapter
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            addItemDecoration(DividerItemDecoration(this@MainActivity, LinearLayoutManager.VERTICAL))
+        }
+    }
 
-    override fun onResume() {
-        super.onResume()
-        getChildren()
+    private fun setupCalendar() {
+        binding.calendarView.apply {
+            date = System.currentTimeMillis()
+
+            setOnDateChangeListener { _, year, month, dayOfMonth ->
+                selectedDate.set(year, month, dayOfMonth)
+                updateCurrentDateDisplay()
+            }
+        }
     }
 
     private fun setupClickListeners() {
@@ -73,10 +75,27 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
             val intent = Intent(this, RoutineListActivity::class.java)
             startActivity(intent)
         }
+
         binding.buttonCreateChild.setOnClickListener {
             val intent = Intent(this, CreateChildActivity::class.java)
             startActivity(intent)
         }
+
+        binding.buttonViewDateRoutines.setOnClickListener {
+            val intent = Intent(this, RoutineListActivity::class.java)
+            intent.putExtra("selectedDate", selectedDate.timeInMillis)
+            startActivity(intent)
+        }
+    }
+
+    private fun updateCurrentDateDisplay() {
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+        binding.currentDateDisplay.text = dateFormat.format(selectedDate.time)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        getChildren()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -85,15 +104,13 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
         return true
     }
 
-
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.mi_logout -> {
                 auth.signOut()
                 finish()
-                return true
+                true
             }
-
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -113,7 +130,6 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
     override fun onDeleteClick(id: String) {
         removeEndUserFromParent(auth.currentUser!!.uid, id)
     }
-
 
     private fun removeEndUserFromParent(parentId: String, endUserId: String) {
         db.collection("parents").document(parentId).get()
@@ -137,24 +153,28 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
                         db.collection("parents").document(parentId)
                             .collection("children").document(endUserId)
                     )
+                }.addOnSuccessListener {
+                    getChildren() // Refresh the list after successful deletion
+                }.addOnFailureListener { e ->
+                    Snackbar.make(binding.root, "Error removing child: ${e.message}",
+                        Snackbar.LENGTH_SHORT).show()
                 }
             }
-        getChildren()
+            .addOnFailureListener { e ->
+                Snackbar.make(binding.root, "Error accessing parent data: ${e.message}",
+                    Snackbar.LENGTH_SHORT).show()
+            }
     }
 
-
     private fun getChildren() {
-        // First get the parent document to access their children list
         Log.w("TESTING", "parentId: ${auth.currentUser!!.uid}")
         db.collection("parents")
             .document(auth.currentUser!!.uid)
             .get()
             .addOnSuccessListener { parentDoc: DocumentSnapshot ->
-                // Get the list of child (endUser) IDs
                 val childrenIds = parentDoc.get("children") as? List<String>
                 Log.w("TESTING", "childIDs: $childrenIds")
                 if (!childrenIds.isNullOrEmpty()) {
-                    // Query endUsers collection for documents with matching IDs
                     db.collection("endUser")
                         .whereIn(FieldPath.documentId(), childrenIds)
                         .get()
@@ -163,9 +183,6 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
                             for (endUserDoc: QueryDocumentSnapshot in endUserResults) {
                                 val childFromDB: EndUser = endUserDoc.toObject(EndUser::class.java)
                                 childList.add(childFromDB)
-                                if (childList.isEmpty()) {
-                                    //TODO: CREATE AN EMPTY LIST VIEW
-                                }
                             }
                             childAdapter.notifyDataSetChanged()
                         }
@@ -174,6 +191,9 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
                             Snackbar.make(binding.root, "Error getting end users",
                                 Snackbar.LENGTH_SHORT).show()
                         }
+                } else {
+                    childList.clear()
+                    childAdapter.notifyDataSetChanged()
                 }
             }
             .addOnFailureListener { error ->

@@ -30,6 +30,7 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
     private var isEditMode = false
     private val db = Firebase.firestore
     private lateinit var auth: FirebaseAuth
+    private var endUserId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,15 +38,19 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
         setContentView(binding.root)
         supportActionBar?.setTitle("Routines")  // Changed !! to ?
 
-        val endUserId = intent.getStringExtra("endUser")
+        endUserId = intent.getStringExtra("endUser")
         auth = Firebase.auth
 
         setupRecyclerView()
         setupClickListeners()
+    }
 
+
+    override fun onResume() {
+        super.onResume()
         // Get Routines
         if (endUserId != null) {
-            getSpecificEndUserRoutines(endUserId)
+            getSpecificEndUserRoutines(endUserId!!)
         } else {
             auth.currentUser?.uid?.let { uid ->  // Safe call added
                 getAllEndUserRoutines(uid)
@@ -99,6 +104,91 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
         }
     }
 
+//    private fun getSpecificEndUserRoutines(endUserId: String) {
+//        db.collection("endUser").document(endUserId)
+//            .get()
+//            .addOnSuccessListener { endUserDoc: DocumentSnapshot ->
+//                val routineIds = endUserDoc.get("routines") as? List<String>
+//
+//                if (!routineIds.isNullOrEmpty()) {
+//                    routineList.clear()
+//
+//                    db.collection("routines")
+//                        .whereIn(FieldPath.documentId(), routineIds)
+//                        .get()
+//                        .addOnSuccessListener { routineResults: QuerySnapshot ->
+//                            for (routineDoc: QueryDocumentSnapshot in routineResults) {
+//                                routineDoc.toObject(Routine::class.java).let { routine ->
+//                                    routine.id = routineDoc.id  // Ensure ID is set
+//                                    routineList.add(routine)
+//                                }
+//                            }
+//                            routineAdapter.notifyDataSetChanged()
+//                        }
+//                        .addOnFailureListener { error ->
+//                            Snackbar.make(binding.root, "Error getting routines: ${error.message}",
+//                                Snackbar.LENGTH_SHORT).show()
+//                        }
+//                }
+//            }
+//            .addOnFailureListener { error ->
+//                Snackbar.make(binding.root, "Error getting end user data: ${error.message}",
+//                    Snackbar.LENGTH_SHORT).show()
+//            }
+//    }
+//
+//    private fun getAllEndUserRoutines(parentId: String) {
+//        db.collection("parents").document(parentId)
+//            .get()
+//            .addOnSuccessListener { parentDoc: DocumentSnapshot ->
+//                val childrenIds = parentDoc.get("children") as? List<String>
+//
+//                if (!childrenIds.isNullOrEmpty()) {
+//                    db.collection("endUser")
+//                        .whereIn(FieldPath.documentId(), childrenIds)
+//                        .get()
+//                        .addOnSuccessListener { endUserResults: QuerySnapshot ->
+//                            val allRoutineIds = mutableListOf<String>()
+//
+//                            for (endUserDoc: QueryDocumentSnapshot in endUserResults) {
+//                                (endUserDoc.get("routines") as? List<String>)?.let { routineIds ->
+//                                    allRoutineIds.addAll(routineIds)
+//                                }
+//                            }
+//
+//                            if (allRoutineIds.isNotEmpty()) {
+//                                routineList.clear()
+//
+//                                db.collection("routines")
+//                                    .whereIn(FieldPath.documentId(), allRoutineIds)
+//                                    .get()
+//                                    .addOnSuccessListener { routineResults: QuerySnapshot ->
+//                                        for (routineDoc: QueryDocumentSnapshot in routineResults) {
+//                                            routineDoc.toObject(Routine::class.java).let { routine ->
+//                                                routine.id = routineDoc.id  // Ensure ID is set
+//                                                routineList.add(routine)
+//                                            }
+//                                        }
+//                                        routineAdapter.notifyDataSetChanged()
+//                                    }
+//                                    .addOnFailureListener { error ->
+//                                        Snackbar.make(binding.root, "Error getting routines: ${error.message}",
+//                                            Snackbar.LENGTH_SHORT).show()
+//                                    }
+//                            }
+//                        }
+//                        .addOnFailureListener { error ->
+//                            Snackbar.make(binding.root, "Error getting end users: ${error.message}",
+//                                Snackbar.LENGTH_SHORT).show()
+//                        }
+//                }
+//            }
+//            .addOnFailureListener { error ->
+//                Snackbar.make(binding.root, "Error getting parent data: ${error.message}",
+//                    Snackbar.LENGTH_SHORT).show()
+//            }
+//    }
+
     private fun getSpecificEndUserRoutines(endUserId: String) {
         db.collection("endUser").document(endUserId)
             .get()
@@ -112,22 +202,75 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
                         .whereIn(FieldPath.documentId(), routineIds)
                         .get()
                         .addOnSuccessListener { routineResults: QuerySnapshot ->
+                            var completedRoutines = 0
+                            val totalRoutines = routineResults.size()
+
                             for (routineDoc: QueryDocumentSnapshot in routineResults) {
-                                routineDoc.toObject(Routine::class.java).let { routine ->
-                                    routine.id = routineDoc.id  // Ensure ID is set
+                                val routine = routineDoc.toObject(Routine::class.java).apply {
+                                    id = routineDoc.id
+                                }
+
+                                // Only proceed if the routine has steps
+                                if (routine.steps.isNotEmpty()) {
+                                    // Get all steps for this routine
+                                    db.collection("steps")
+                                        .whereIn(FieldPath.documentId(), routine.steps)
+                                        .get()
+                                        .addOnSuccessListener { stepResults ->
+                                            // Check if all steps are completed
+                                            val allStepsCompleted = stepResults.all { stepDoc ->
+                                                stepDoc.getBoolean("completed") ?: false
+                                            }
+
+                                            // Update routine completion status
+                                            routine.completed = allStepsCompleted
+
+                                            // Update the routine document in Firestore
+                                            db.collection("routines")
+                                                .document(routine.id)
+                                                .update("completed", allStepsCompleted)
+                                                .addOnSuccessListener {
+                                                    completedRoutines++
+
+                                                    // Add routine to list and notify adapter when all routines are processed
+                                                    routineList.add(routine)
+                                                    if (completedRoutines == totalRoutines) {
+                                                        routineAdapter.notifyDataSetChanged()
+                                                    }
+                                                }
+                                                .addOnFailureListener { error ->
+                                                    Snackbar.make(binding.root,
+                                                        "Error updating routine status: ${error.message}",
+                                                        Snackbar.LENGTH_SHORT).show()
+                                                }
+                                        }
+                                        .addOnFailureListener { error ->
+                                            Snackbar.make(binding.root,
+                                                "Error getting steps: ${error.message}",
+                                                Snackbar.LENGTH_SHORT).show()
+                                        }
+                                } else {
+                                    // If routine has no steps, mark as incomplete
+                                    routine.completed = false
                                     routineList.add(routine)
+                                    completedRoutines++
+
+                                    if (completedRoutines == totalRoutines) {
+                                        routineAdapter.notifyDataSetChanged()
+                                    }
                                 }
                             }
-                            routineAdapter.notifyDataSetChanged()
                         }
                         .addOnFailureListener { error ->
-                            Snackbar.make(binding.root, "Error getting routines: ${error.message}",
+                            Snackbar.make(binding.root,
+                                "Error getting routines: ${error.message}",
                                 Snackbar.LENGTH_SHORT).show()
                         }
                 }
             }
             .addOnFailureListener { error ->
-                Snackbar.make(binding.root, "Error getting end user data: ${error.message}",
+                Snackbar.make(binding.root,
+                    "Error getting end user data: ${error.message}",
                     Snackbar.LENGTH_SHORT).show()
             }
     }
@@ -158,28 +301,82 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
                                     .whereIn(FieldPath.documentId(), allRoutineIds)
                                     .get()
                                     .addOnSuccessListener { routineResults: QuerySnapshot ->
+                                        var completedRoutines = 0
+                                        val totalRoutines = routineResults.size()
+
                                         for (routineDoc: QueryDocumentSnapshot in routineResults) {
-                                            routineDoc.toObject(Routine::class.java).let { routine ->
-                                                routine.id = routineDoc.id  // Ensure ID is set
+                                            val routine = routineDoc.toObject(Routine::class.java).apply {
+                                                id = routineDoc.id
+                                            }
+
+                                            // Only proceed if the routine has steps
+                                            if (routine.steps.isNotEmpty()) {
+                                                // Get all steps for this routine
+                                                db.collection("steps")
+                                                    .whereIn(FieldPath.documentId(), routine.steps)
+                                                    .get()
+                                                    .addOnSuccessListener { stepResults ->
+                                                        // Check if all steps are completed
+                                                        val allStepsCompleted = stepResults.all { stepDoc ->
+                                                            stepDoc.getBoolean("completed") ?: false
+                                                        }
+
+                                                        // Update routine completion status
+                                                        routine.completed = allStepsCompleted
+
+                                                        // Update the routine document in Firestore
+                                                        db.collection("routines")
+                                                            .document(routine.id)
+                                                            .update("completed", allStepsCompleted)
+                                                            .addOnSuccessListener {
+                                                                completedRoutines++
+
+                                                                // Add routine to list and notify adapter when all routines are processed
+                                                                routineList.add(routine)
+                                                                if (completedRoutines == totalRoutines) {
+                                                                    routineAdapter.notifyDataSetChanged()
+                                                                }
+                                                            }
+                                                            .addOnFailureListener { error ->
+                                                                Snackbar.make(binding.root,
+                                                                    "Error updating routine status: ${error.message}",
+                                                                    Snackbar.LENGTH_SHORT).show()
+                                                            }
+                                                    }
+                                                    .addOnFailureListener { error ->
+                                                        Snackbar.make(binding.root,
+                                                            "Error getting steps: ${error.message}",
+                                                            Snackbar.LENGTH_SHORT).show()
+                                                    }
+                                            } else {
+                                                // If routine has no steps, mark as incomplete
+                                                routine.completed = false
                                                 routineList.add(routine)
+                                                completedRoutines++
+
+                                                if (completedRoutines == totalRoutines) {
+                                                    routineAdapter.notifyDataSetChanged()
+                                                }
                                             }
                                         }
-                                        routineAdapter.notifyDataSetChanged()
                                     }
                                     .addOnFailureListener { error ->
-                                        Snackbar.make(binding.root, "Error getting routines: ${error.message}",
+                                        Snackbar.make(binding.root,
+                                            "Error getting routines: ${error.message}",
                                             Snackbar.LENGTH_SHORT).show()
                                     }
                             }
                         }
                         .addOnFailureListener { error ->
-                            Snackbar.make(binding.root, "Error getting end users: ${error.message}",
+                            Snackbar.make(binding.root,
+                                "Error getting end users: ${error.message}",
                                 Snackbar.LENGTH_SHORT).show()
                         }
                 }
             }
             .addOnFailureListener { error ->
-                Snackbar.make(binding.root, "Error getting parent data: ${error.message}",
+                Snackbar.make(binding.root,
+                    "Error getting parent data: ${error.message}",
                     Snackbar.LENGTH_SHORT).show()
             }
     }
