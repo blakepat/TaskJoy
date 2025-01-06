@@ -3,6 +3,7 @@ package com.example.taskjoy.screens
 import android.os.Bundle
 import android.util.Log
 import android.widget.EditText
+import android.widget.RadioGroup
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
@@ -45,9 +46,9 @@ class CreateChildActivity : AppCompatActivity() {
             id?.let { it1 -> updateEndUser(it1) }
         }
 
-        binding.btnAddAnotherParent.setOnClickListener {
+        binding.btnAddUser.setOnClickListener {
             id?.let { endUserId ->
-                showAddParentDialog(endUserId)
+                showAddUserDialog(endUserId)
             } ?: run {
                 Snackbar.make(binding.root, "Please create or select a child first", Snackbar.LENGTH_SHORT).show()
             }
@@ -64,8 +65,8 @@ class CreateChildActivity : AppCompatActivity() {
         getEndUser(id)
         binding.btnAddChild.isEnabled = false
         binding.btnAddChild.isVisible = false
-        binding.btnAddAnotherParent.isEnabled = true
-        binding.btnAddAnotherParent.isVisible = true
+        binding.btnAddUser.isEnabled = true
+        binding.btnAddUser.isVisible = true
         binding.btnUpdateChild.isEnabled = true
         binding.btnUpdateChild.isVisible = true
     }
@@ -103,9 +104,66 @@ class CreateChildActivity : AppCompatActivity() {
             }
     }
 
+    private fun addEndUserToChaperone(endUserId: String, chaperoneEmail: String) {
+        db.collection("parents")
+            .whereEqualTo("email", chaperoneEmail)
+            .get()
+            .addOnSuccessListener { documents ->
+                if (documents.isEmpty) {
+                    Snackbar.make(binding.root, "No user found with that email", Snackbar.LENGTH_LONG).show()
+                    return@addOnSuccessListener
+                }
+
+                val chaperoneDoc = documents.documents[0]
+                val chaperoneId = chaperoneDoc.id
+
+                // Create a batch write for atomic update
+                val batch = db.batch()
+
+                // Update the parent document to add the child to their children list
+                val parentRef = db.collection("parents").document(chaperoneId)
+                db.collection("parents")
+                    .document(chaperoneId)
+                    .get()
+                    .addOnSuccessListener { parentDoc ->
+                        val parent = parentDoc.toObject(Parent::class.java)
+                        val updatedChildren = parent?.children?.toMutableList() ?: mutableListOf()
+
+                        if (!updatedChildren.contains(endUserId)) {
+                            updatedChildren.add(endUserId)
+                            batch.update(parentRef, "children", updatedChildren)
+                        }
+
+                        // Update the endUser document to add the chaperone
+                        val endUserRef = db.collection("endUser").document(endUserId)
+                        db.collection("endUser")
+                            .document(endUserId)
+                            .get()
+                            .addOnSuccessListener { endUserDoc ->
+                                val endUser = endUserDoc.toObject(EndUser::class.java)
+                                val updatedChaperones = endUser?.chaperones?.toMutableList() ?: mutableListOf()
+
+                                if (!updatedChaperones.contains(chaperoneId)) {
+                                    updatedChaperones.add(chaperoneId)
+                                    batch.update(endUserRef, "chaperones", updatedChaperones)
+                                }
+
+                                // Commit all updates atomically
+                                batch.commit()
+                                    .addOnSuccessListener {
+                                        Snackbar.make(binding.root, "Successfully added chaperone relationship", Snackbar.LENGTH_SHORT).show()
+                                    }.addOnFailureListener { error ->
+                                        Snackbar.make(binding.root, "Failed: $error", Snackbar.LENGTH_SHORT).show()
+                                    }
+                            }
+                    }
+            }
+            .addOnFailureListener { e ->
+                Snackbar.make(binding.root, "Error finding user: ${e.message}", Snackbar.LENGTH_LONG).show()
+            }
+    }
 
     private fun addEndUserToAnotherParent(endUserId: String, parentEmail: String) {
-        // First find the parent by email
         db.collection("parents")
             .whereEqualTo("email", parentEmail)
             .get()
@@ -116,24 +174,47 @@ class CreateChildActivity : AppCompatActivity() {
                 }
 
                 val parentDoc = documents.documents[0]
-                val parent = parentDoc.toObject(Parent::class.java)
-                val updatedChildren = parent?.children?.toMutableList() ?: mutableListOf()
+                val parentId = parentDoc.id
 
-                // Check if child is already added to this parent
-                if (updatedChildren.contains(endUserId)) {
-                    Snackbar.make(binding.root, "Child already added to this parent", Snackbar.LENGTH_LONG).show()
-                    return@addOnSuccessListener
-                }
+                // Create a batch write for atomic update
+                val batch = db.batch()
 
-                updatedChildren.add(endUserId)
-
+                // Update parent's children list
+                val parentRef = db.collection("parents").document(parentId)
                 db.collection("parents")
-                    .document(parentDoc.id)
-                    .update("children", updatedChildren)
-                    .addOnSuccessListener {
-                        Snackbar.make(binding.root, "Successfully added child to other parent", Snackbar.LENGTH_SHORT).show()
-                    }.addOnFailureListener { error ->
-                        Snackbar.make(binding.root, "Failed: $error", Snackbar.LENGTH_SHORT).show()
+                    .document(parentId)
+                    .get()
+                    .addOnSuccessListener { doc ->
+                        val parent = doc.toObject(Parent::class.java)
+                        val updatedChildren = parent?.children?.toMutableList() ?: mutableListOf()
+
+                        if (!updatedChildren.contains(endUserId)) {
+                            updatedChildren.add(endUserId)
+                            batch.update(parentRef, "children", updatedChildren)
+                        }
+
+                        // Update endUser's parents list
+                        val endUserRef = db.collection("endUser").document(endUserId)
+                        db.collection("endUser")
+                            .document(endUserId)
+                            .get()
+                            .addOnSuccessListener { endUserDoc ->
+                                val endUser = endUserDoc.toObject(EndUser::class.java)
+                                val updatedParents = endUser?.parents?.toMutableList() ?: mutableListOf()
+
+                                if (!updatedParents.contains(parentId)) {
+                                    updatedParents.add(parentId)
+                                    batch.update(endUserRef, "parents", updatedParents)
+                                }
+
+                                // Commit all updates atomically
+                                batch.commit()
+                                    .addOnSuccessListener {
+                                        Snackbar.make(binding.root, "Successfully added parent relationship", Snackbar.LENGTH_SHORT).show()
+                                    }.addOnFailureListener { error ->
+                                        Snackbar.make(binding.root, "Failed: $error", Snackbar.LENGTH_SHORT).show()
+                                    }
+                            }
                     }
             }
             .addOnFailureListener { e ->
@@ -141,22 +222,31 @@ class CreateChildActivity : AppCompatActivity() {
             }
     }
 
-    private fun showAddParentDialog(endUserId: String) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_add_parent, null)
-        val emailEditText = dialogView.findViewById<EditText>(R.id.etParentEmail)
+
+
+    private fun showAddUserDialog(endUserId: String) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_user, null)
+        val emailEditText = dialogView.findViewById<EditText>(R.id.etUserEmail)
+        val roleRadioGroup = dialogView.findViewById<RadioGroup>(R.id.rgRole)
 
         MaterialAlertDialogBuilder(this)
-            .setTitle("Add Another Parent")
+            .setTitle("Add User")
             .setView(dialogView)
-            .setMessage("Enter the email of the parent you want to add this child to:")
+            .setMessage("Enter the email of the user you want to add:")
             .setPositiveButton("Add") { dialog, _ ->
                 val email = emailEditText.text.toString()
+                val isParent = roleRadioGroup.checkedRadioButtonId == R.id.rbParent
+
                 if (email.isNotEmpty()) {
                     MaterialAlertDialogBuilder(this)
                         .setTitle("Confirm Addition")
-                        .setMessage("Are you sure you want to add this child to parent with email: $email?")
+                        .setMessage("Are you sure you want to add this user as ${if (isParent) "parent" else "chaperone"}?")
                         .setPositiveButton("Yes") { confirmDialog, _ ->
-                            addEndUserToAnotherParent(endUserId, email)
+                            if (isParent) {
+                                addEndUserToAnotherParent(endUserId, email)
+                            } else {
+                                addEndUserToChaperone(endUserId, email)
+                            }
                             confirmDialog.dismiss()
                         }
                         .setNegativeButton("No") { confirmDialog, _ ->

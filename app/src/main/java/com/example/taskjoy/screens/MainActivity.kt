@@ -51,7 +51,8 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
     }
 
     private fun setupRecyclerView() {
-        childAdapter = ChildAdapter(childList, this)
+        // Pass the current user ID to the adapter
+        childAdapter = ChildAdapter(childList, this, auth.currentUser!!.uid)
         binding.childRecyclerView.apply {
             adapter = childAdapter
             layoutManager = LinearLayoutManager(this@MainActivity)

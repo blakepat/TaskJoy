@@ -8,6 +8,7 @@ data class EndUser(
     var notes: MutableList<String> = mutableListOf(),
     var parents: MutableList<String> = mutableListOf(),
     var routines: MutableList<String> = mutableListOf(),
+    var chaperones: MutableList<String> = mutableListOf(),
     @DocumentId
     val id: String = ""
 )
