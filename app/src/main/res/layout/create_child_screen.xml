@@ -1,106 +1,99 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layout_margin="12dp"
-    android:gravity="bottom"
-    android:padding="12dp"
-    android:orientation="vertical"
-    >
+    android:padding="16dp">
 
-    <androidx.cardview.widget.CardView
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:layout_marginBottom="60dp"
-        android:layout_marginTop="60dp"
-        app:cardCornerRadius="100dp"
-        app:cardElevation="0dp"
-        android:layout_gravity="center"
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilChildName"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Child's Name"
+        app:layout_constraintTop_toTopOf="parent">
 
-        app:cardBackgroundColor="#FB0093FB">  <!-- Add your desired color here -->
-
-        <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:padding="16dp"
-            android:src="@drawable/logo"
-            android:scaleType="fitCenter"/>
-
-    </androidx.cardview.widget.CardView>
-
-
-
-    <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:textColor="#353434"
-            android:text="Create account for child user:"
-            />
-
-        <EditText
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etChildName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="enter child name"
-            android:textColorHint="#C3C2C2"
-            android:minHeight="48dp"
-            android:elevation="2dp"
-            android:background="@drawable/edit_text_background"
-            android:drawableEnd="@drawable/email_icon"
-            android:padding="16dp"
-            android:textColor="@color/black"
-            android:layout_marginVertical="4dp"
-            />
+            android:inputType="textPersonName" />
 
-        <EditText
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilChildAge"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:hint="Child's Age"
+        app:layout_constraintTop_toBottomOf="@id/tilChildName">
+
+        <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etChildAge"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="enter child age"
-            android:textColorHint="#C3C2C2"
-            android:minHeight="48dp"
-            android:elevation="2dp"
-            android:background="@drawable/edit_text_background"
-            android:drawableEnd="@drawable/email_icon"
-            android:padding="16dp"
-            android:textColor="@color/black"
-            android:layout_marginVertical="4dp"
-            />
+            android:inputType="number" />
 
-    <Button
-        android:id="@+id/btnAddUser"
-        android:elevation="4dp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:textColor="@color/white"
-        android:layout_marginVertical="16dp"
-        android:visibility="invisible"
-        android:enabled="false"
-        android:background="@drawable/button_background"
-        android:text="Add Parent/Chaperone"/>
+    </com.google.android.material.textfield.TextInputLayout>
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnAddChild"
-        android:elevation="4dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/white"
-        android:layout_marginVertical="16dp"
-        android:background="@drawable/button_background"
-        android:text="Add Child"/>
+        android:layout_marginTop="24dp"
+        android:text="Add Child"
+        app:layout_constraintTop_toBottomOf="@id/tilChildAge" />
 
-    <Button
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btnUpdateChild"
-        android:elevation="4dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/white"
-        android:visibility="invisible"
+        android:layout_marginTop="8dp"
         android:enabled="false"
-        android:layout_marginVertical="16dp"
-        android:background="@drawable/button_background"
-        android:text="Update Child"/>
+        android:text="Update Child"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/btnAddChild" />
 
-</LinearLayout>
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAddUser"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:enabled="false"
+        android:text="Add User"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/btnUpdateChild" />
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardUsers"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"
+        app:cardElevation="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnAddUser">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="16dp"
+                android:text="Users"
+                android:textAppearance="?attr/textAppearanceHeadline6" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvUsers"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

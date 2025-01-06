@@ -1,6 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
 <androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="8dp"
@@ -21,8 +23,7 @@
             android:padding="4dp"
             android:background="@drawable/circular_background_step"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintTop_toTopOf="parent" />
 
         <TextView
             android:id="@+id/stepName"
@@ -36,7 +37,23 @@
             app:layout_constraintStart_toEndOf="@id/stepIcon"
             app:layout_constraintEnd_toStartOf="@id/completionIndicator"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            tools:text="Step Name" />
+
+        <TextView
+            android:id="@+id/stepNotes"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="4dp"
+            android:textSize="14sp"
+            android:textColor="@color/secondary_text"
+            android:maxLines="2"
+            android:ellipsize="end"
+            app:layout_constraintStart_toEndOf="@id/stepIcon"
+            app:layout_constraintEnd_toStartOf="@id/completionIndicator"
+            app:layout_constraintTop_toBottomOf="@id/stepName"
+            tools:text="Notes preview text that might be long and need to be truncated after two lines with an ellipsis" />
 
         <ImageView
             android:id="@+id/completionIndicator"

@@ -2,11 +2,17 @@ package com.example.taskjoy.screens
 
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.RadioGroup
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.recyclerview.widget.RecyclerView
 import com.example.taskjoy.R
 import com.example.taskjoy.databinding.CreateChildScreenBinding
 import com.example.taskjoy.model.EndUser
@@ -15,17 +21,61 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.auth.User
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
 class CreateChildActivity : AppCompatActivity() {
 
-    lateinit var binding: CreateChildScreenBinding
+    private lateinit var binding: CreateChildScreenBinding
     private var db = Firebase.firestore
     private lateinit var auth: FirebaseAuth
+    private lateinit var userAdapter: UserManagementAdapter
+    private var isCurrentUserParent = false
 
+    private class UserManagementAdapter(
+        private var users: List<UserItem>,
+        private val currentUserId: String,
+        private val isParent: Boolean,
+        private val onRemoveClick: (String) -> Unit
+    ) : RecyclerView.Adapter<UserManagementAdapter.UserViewHolder>() {
+
+        data class UserItem(
+            val id: String,
+            val email: String,
+            val isParent: Boolean
+        )
+
+        class UserViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val emailText: TextView = view.findViewById(R.id.tvUserEmail)
+            val roleText: TextView = view.findViewById(R.id.tvUserRole)
+            val removeButton: ImageButton = view.findViewById(R.id.btnRemoveUser)
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): UserViewHolder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_user, parent, false)
+            return UserViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: UserViewHolder, position: Int) {
+            val user = users[position]
+            holder.emailText.text = user.email
+            holder.roleText.text = if (user.isParent) "Parent" else "Chaperone"
+
+            holder.removeButton.isVisible = isParent && user.id != currentUserId
+            holder.removeButton.setOnClickListener {
+                onRemoveClick(user.id)
+            }
+        }
+
+        override fun getItemCount() = users.size
+
+        fun updateUsers(newUsers: List<UserItem>) {
+            users = newUsers
+            notifyDataSetChanged()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,7 +84,6 @@ class CreateChildActivity : AppCompatActivity() {
 
         auth = Firebase.auth
         val id = intent.getStringExtra("endUser")
-
 
         binding.btnAddChild.setOnClickListener {
             createEndUser().also { endUserId ->
@@ -60,6 +109,48 @@ class CreateChildActivity : AppCompatActivity() {
         }
     }
 
+    private fun setupUsersRecyclerView(endUserId: String) {
+        userAdapter = UserManagementAdapter(
+            users = emptyList(),
+            currentUserId = auth.currentUser?.uid ?: "",
+            isParent = isCurrentUserParent
+        ) { userId ->
+            showRemoveUserDialog(endUserId, userId)
+        }
+        binding.rvUsers.adapter = userAdapter
+        loadUsers(endUserId)
+    }
+
+    private fun loadUsers(endUserId: String) {
+        db.collection("endUser")
+            .document(endUserId)
+            .get()
+            .addOnSuccessListener { document ->
+                val endUser = document.toObject(EndUser::class.java)
+                val userIds = (endUser?.parents ?: emptyList()) + (endUser?.chaperones ?: emptyList())
+
+                if (userIds.isEmpty()) {
+                    userAdapter.updateUsers(emptyList())
+                    return@addOnSuccessListener
+                }
+
+                db.collection("parents")
+                    .whereIn(FieldPath.documentId(), userIds)
+                    .get()
+                    .addOnSuccessListener { documents ->
+                        val users = documents.mapNotNull { doc ->
+                            val parent = doc.toObject(Parent::class.java)
+                            val isParent = endUser?.parents?.contains(doc.id) == true
+                            UserManagementAdapter.UserItem(
+                                id = doc.id,
+                                email = parent.email ?: "",
+                                isParent = isParent
+                            )
+                        }
+                        userAdapter.updateUsers(users)
+                    }
+            }
+    }
 
     private fun updateUserUI(id: String) {
         getEndUser(id)
@@ -69,8 +160,24 @@ class CreateChildActivity : AppCompatActivity() {
         binding.btnAddUser.isVisible = true
         binding.btnUpdateChild.isEnabled = true
         binding.btnUpdateChild.isVisible = true
+        binding.cardUsers.isVisible = true
+
+        checkUserRole(id) { isParent ->
+            isCurrentUserParent = isParent
+            setupUsersRecyclerView(id)
+        }
     }
 
+    private fun checkUserRole(endUserId: String, callback: (Boolean) -> Unit) {
+        db.collection("endUser")
+            .document(endUserId)
+            .get()
+            .addOnSuccessListener { document ->
+                val endUser = document.toObject(EndUser::class.java)
+                val isParent = endUser?.parents?.contains(auth.currentUser?.uid) == true
+                callback(isParent)
+            }
+    }
 
     private fun createEndUser(): String {
         val endUserRef = db.collection("endUser").document()
@@ -104,6 +211,59 @@ class CreateChildActivity : AppCompatActivity() {
             }
     }
 
+    private fun showRemoveUserDialog(endUserId: String, userId: String) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Remove User")
+            .setMessage("Are you sure you want to remove this user's access?")
+            .setPositiveButton("Remove") { _, _ ->
+                removeUser(endUserId, userId)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun removeUser(endUserId: String, userId: String) {
+        val batch = db.batch()
+
+        val endUserRef = db.collection("endUser").document(endUserId)
+        db.collection("endUser")
+            .document(endUserId)
+            .get()
+            .addOnSuccessListener { endUserDoc ->
+                val endUser = endUserDoc.toObject(EndUser::class.java)
+
+                if (endUser?.parents?.contains(userId) == true) {
+                    val updatedParents = endUser.parents.toMutableList()
+                    updatedParents.remove(userId)
+                    batch.update(endUserRef, "parents", updatedParents)
+                } else if (endUser?.chaperones?.contains(userId) == true) {
+                    val updatedChaperones = endUser.chaperones.toMutableList()
+                    updatedChaperones.remove(userId)
+                    batch.update(endUserRef, "chaperones", updatedChaperones)
+                }
+
+                val parentRef = db.collection("parents").document(userId)
+                db.collection("parents")
+                    .document(userId)
+                    .get()
+                    .addOnSuccessListener { parentDoc ->
+                        val parent = parentDoc.toObject(Parent::class.java)
+                        val updatedChildren = parent?.children?.toMutableList() ?: mutableListOf()
+                        updatedChildren.remove(endUserId)
+                        batch.update(parentRef, "children", updatedChildren)
+
+                        batch.commit()
+                            .addOnSuccessListener {
+                                Snackbar.make(binding.root, "User removed successfully", Snackbar.LENGTH_SHORT).show()
+                                loadUsers(endUserId)
+                            }
+                            .addOnFailureListener { error ->
+                                Snackbar.make(binding.root, "Failed to remove user: $error", Snackbar.LENGTH_SHORT).show()
+                            }
+                    }
+            }
+    }
+
     private fun addEndUserToChaperone(endUserId: String, chaperoneEmail: String) {
         db.collection("parents")
             .whereEqualTo("email", chaperoneEmail)
@@ -117,10 +277,8 @@ class CreateChildActivity : AppCompatActivity() {
                 val chaperoneDoc = documents.documents[0]
                 val chaperoneId = chaperoneDoc.id
 
-                // Create a batch write for atomic update
                 val batch = db.batch()
 
-                // Update the parent document to add the child to their children list
                 val parentRef = db.collection("parents").document(chaperoneId)
                 db.collection("parents")
                     .document(chaperoneId)
@@ -134,7 +292,6 @@ class CreateChildActivity : AppCompatActivity() {
                             batch.update(parentRef, "children", updatedChildren)
                         }
 
-                        // Update the endUser document to add the chaperone
                         val endUserRef = db.collection("endUser").document(endUserId)
                         db.collection("endUser")
                             .document(endUserId)
@@ -148,10 +305,10 @@ class CreateChildActivity : AppCompatActivity() {
                                     batch.update(endUserRef, "chaperones", updatedChaperones)
                                 }
 
-                                // Commit all updates atomically
                                 batch.commit()
                                     .addOnSuccessListener {
                                         Snackbar.make(binding.root, "Successfully added chaperone relationship", Snackbar.LENGTH_SHORT).show()
+                                        loadUsers(endUserId)
                                     }.addOnFailureListener { error ->
                                         Snackbar.make(binding.root, "Failed: $error", Snackbar.LENGTH_SHORT).show()
                                     }
@@ -176,10 +333,8 @@ class CreateChildActivity : AppCompatActivity() {
                 val parentDoc = documents.documents[0]
                 val parentId = parentDoc.id
 
-                // Create a batch write for atomic update
                 val batch = db.batch()
 
-                // Update parent's children list
                 val parentRef = db.collection("parents").document(parentId)
                 db.collection("parents")
                     .document(parentId)
@@ -193,7 +348,6 @@ class CreateChildActivity : AppCompatActivity() {
                             batch.update(parentRef, "children", updatedChildren)
                         }
 
-                        // Update endUser's parents list
                         val endUserRef = db.collection("endUser").document(endUserId)
                         db.collection("endUser")
                             .document(endUserId)
@@ -207,10 +361,10 @@ class CreateChildActivity : AppCompatActivity() {
                                     batch.update(endUserRef, "parents", updatedParents)
                                 }
 
-                                // Commit all updates atomically
                                 batch.commit()
                                     .addOnSuccessListener {
                                         Snackbar.make(binding.root, "Successfully added parent relationship", Snackbar.LENGTH_SHORT).show()
+                                        loadUsers(endUserId)
                                     }.addOnFailureListener { error ->
                                         Snackbar.make(binding.root, "Failed: $error", Snackbar.LENGTH_SHORT).show()
                                     }
@@ -221,8 +375,6 @@ class CreateChildActivity : AppCompatActivity() {
                 Snackbar.make(binding.root, "Error finding parent: ${e.message}", Snackbar.LENGTH_LONG).show()
             }
     }
-
-
 
     private fun showAddUserDialog(endUserId: String) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_add_user, null)
@@ -261,8 +413,6 @@ class CreateChildActivity : AppCompatActivity() {
             }
             .show()
     }
-
-
     private fun getEndUser(endUserId: String) {
         db.collection("endUser")
             .document(endUserId)
@@ -283,7 +433,6 @@ class CreateChildActivity : AppCompatActivity() {
                 Log.w("TESTING", "failure getting endUser: $exception")
             }
     }
-
 
     private fun addEndUserToParent(endUserId: String) {
         db.collection("parents").document(auth.currentUser!!.uid).get()

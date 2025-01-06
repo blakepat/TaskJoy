@@ -55,6 +55,10 @@ class StepDetailsActivity : AppCompatActivity() {
         binding.btnResetCompletion.setOnClickListener {
             markStepAsIncomplete()
         }
+
+        binding.btnSaveNotes.setOnClickListener {
+            saveNotes()
+        }
     }
 
     private fun loadStep(stepId: String, newPosition: Int) {
@@ -64,16 +68,9 @@ class StepDetailsActivity : AppCompatActivity() {
     }
 
     private fun updateNavigationButtons() {
-        // Allow navigation in all cases, just update the visual state
         binding.btnPrevStep.isEnabled = currentPosition > 0
         binding.btnNextStep.apply {
-            isEnabled = true // Always enabled
-//            setImageDrawable(
-//                ContextCompat.getDrawable(
-//                    this@StepDetailsActivity,
-//                    if (currentPosition == stepIds.size - 1) R.drawable.ic_checkmark else R.drawable.ic_forward
-//                )
-//            )
+            isEnabled = true
         }
     }
 
@@ -107,7 +104,6 @@ class StepDetailsActivity : AppCompatActivity() {
         batch.commit()
             .addOnSuccessListener {
                 Snackbar.make(binding.root, "Routine completed!", Snackbar.LENGTH_SHORT).show()
-                // Update UI immediately
                 step.completed = true
                 step.completedAt = currentTime
                 updateCompletionStatus()
@@ -160,6 +156,21 @@ class StepDetailsActivity : AppCompatActivity() {
         }
     }
 
+    private fun saveNotes() {
+        val newNotes = binding.notesEditText.text.toString()
+        val stepRef = db.collection("steps").document(step.id)
+
+        stepRef.update("notes", newNotes)
+            .addOnSuccessListener {
+                step.notes = newNotes
+                Snackbar.make(binding.root, "Notes saved!", Snackbar.LENGTH_SHORT).show()
+            }
+            .addOnFailureListener { error ->
+                Log.e("StepDetailsActivity", "Error saving notes", error)
+                Snackbar.make(binding.root, "Error saving notes", Snackbar.LENGTH_SHORT).show()
+            }
+    }
+
     private fun getStep(stepId: String) {
         db.collection("steps")
             .document(stepId)
@@ -185,5 +196,6 @@ class StepDetailsActivity : AppCompatActivity() {
     private fun setupUI() {
         binding.textStepTitle.text = step.name
         binding.stepImage.setImageResource(TaskJoyIcon.fromString(step.image).getDrawableResource())
+        binding.notesEditText.setText(step.notes)
     }
 }

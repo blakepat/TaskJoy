@@ -80,7 +80,7 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
         binding.recyclerViewSteps.apply {
             adapter = stepAdapter
             layoutManager = LinearLayoutManager(this@StepListActivity)
-            addItemDecoration(DividerItemDecoration(this@StepListActivity, DividerItemDecoration.VERTICAL))
+//            addItemDecoration(DividerItemDecoration(this@StepListActivity, DividerItemDecoration.VERTICAL))
         }
     }
 

@@ -30,6 +30,7 @@ class StepAdapter(
 
         with(holder.binding) {
             stepName.text = currItem.name
+            stepNotes.text = currItem.notes
             stepIcon.setImageResource(TaskJoyIcon.fromString(currItem.image).getDrawableResource())
 
             // Handle completion indicator
