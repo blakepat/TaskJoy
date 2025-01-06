@@ -2,6 +2,7 @@
 <androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="8dp"
@@ -48,6 +49,20 @@
             android:textColor="@color/secondary_text"
             app:layout_constraintStart_toEndOf="@id/routine_icon"
             app:layout_constraintTop_toBottomOf="@id/routine_name" />
+
+        <!-- Add this inside your routine_item.xml layout -->
+        <TextView
+            android:id="@+id/routine_notes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textColor="@color/secondary_text"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:visibility="gone"
+            android:ellipsize="end"
+            android:maxLines="2"
+            tools:ignore="MissingConstraints" />
 
         <ImageView
             android:id="@+id/routine_completion_indicator"

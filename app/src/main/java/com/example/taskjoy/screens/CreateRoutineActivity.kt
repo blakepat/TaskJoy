@@ -1,20 +1,27 @@
 package com.example.taskjoy.screens
 
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.taskjoy.adapters.IconAdapter
 import com.example.taskjoy.databinding.CreateRoutineScreenBinding
-import com.example.taskjoy.model.Routine
+import com.example.taskjoy.model.RoutineTemplate
 import com.example.taskjoy.model.TaskJoyIcon
 import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.ktx.Firebase
 
 class CreateRoutineActivity : AppCompatActivity() {
     private lateinit var binding: CreateRoutineScreenBinding
     private lateinit var db: FirebaseFirestore
+    private lateinit var auth: FirebaseAuth
     private var routineId: String? = null
+    private var endUserId: String? = null
     private var selectedIcon: TaskJoyIcon = TaskJoyIcon.CUSTOM
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -23,7 +30,17 @@ class CreateRoutineActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         db = FirebaseFirestore.getInstance()
+        auth = Firebase.auth
+
+        // Get both routineId and endUserId from intent
         routineId = intent.getStringExtra("routineId")
+        endUserId = intent.getStringExtra("endUser")
+
+        if (endUserId == null) {
+            Toast.makeText(this, "Error: No end user specified", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
 
         setupIconRecyclerView()
         setupClickListeners()
@@ -53,14 +70,31 @@ class CreateRoutineActivity : AppCompatActivity() {
     }
 
     private fun loadRoutineData(routineId: String) {
-        db.collection("routines").document(routineId)
+        // First verify this user has access to this routine
+        db.collection("routineTemplates")
+            .document(routineId)
             .get()
             .addOnSuccessListener { document ->
-                document.toObject(Routine::class.java)?.let { routine ->
-                    binding.etRoutineName.setText(routine.name)
-                    selectedIcon = TaskJoyIcon.fromString(routine.image)
-                    binding.rvIcons.adapter?.notifyDataSetChanged()
+                val routine = document.toObject(RoutineTemplate::class.java)
+                val createdBy = document.getString("createdBy")
+
+                // Verify the user has access to this routine
+                if (createdBy == auth.currentUser?.uid) {
+                    // User created this routine, load it
+                    routine?.let {
+                        binding.etRoutineName.setText(it.name)
+                        selectedIcon = TaskJoyIcon.fromString(it.image)
+                        binding.rvIcons.adapter?.notifyDataSetChanged()
+                    }
+                } else {
+                    // User doesn't have access
+                    Toast.makeText(this, "You don't have access to this routine", Toast.LENGTH_SHORT).show()
+                    finish()
                 }
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error loading routine: ${e.message}", Toast.LENGTH_SHORT).show()
+                finish()
             }
     }
 
@@ -71,25 +105,65 @@ class CreateRoutineActivity : AppCompatActivity() {
             return
         }
 
-        val routine = Routine(
-            name = name,
-            date = Timestamp.now(),
-            image = selectedIcon.name,
-            steps = mutableListOf(),
-            completed = false,
-            id = routineId ?: ""
-        )
-
-        val routinesCollection = db.collection("routines")
-        val routineDoc = if (routineId != null) {
-            routinesCollection.document(routineId!!)
-        } else {
-            routinesCollection.document()
+        val currentUserId = auth.currentUser?.uid
+        if (currentUserId == null) {
+            Toast.makeText(this, "Error: User not authenticated", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        routineDoc.set(routine)
+        // Add debug logs
+        Log.d("CreateRoutine", "Current User ID: $currentUserId")
+        Log.d("CreateRoutine", "EndUser ID: $endUserId")
+
+        // First verify the user has permission (is a parent of this endUser)
+        db.collection("endUser")
+            .document(endUserId!!)
+            .get()
+            .addOnSuccessListener { document ->
+                val parents = document.get("parents") as? List<*>
+                Log.d("CreateRoutine", "Parents list: $parents") // Debug log
+
+                if (parents?.contains(currentUserId) == true) {
+                    // User is a parent, proceed with saving
+                    saveRoutineTemplate(name, currentUserId)
+                } else {
+                    Toast.makeText(this, "Permission denied: Only parents can create routines", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.d("CreateRoutine", "Error checking permissions: ${e.message}") // Debug log
+                Toast.makeText(this, "Error checking permissions: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+    }
+
+    private fun saveRoutineTemplate(name: String, currentUserId: String) {
+        val routineTemplate = hashMapOf(
+            "name" to name,
+            "image" to selectedIcon.name,
+            "steps" to mutableListOf<String>(),
+            "createdBy" to currentUserId,
+            "createdAt" to Timestamp.now(),
+            "endUserId" to endUserId
+        )
+
+        val batch = db.batch()
+        val routineTemplatesCollection = db.collection("routineTemplates")
+        val routineDoc = if (routineId != null) {
+            routineTemplatesCollection.document(routineId!!)
+        } else {
+            routineTemplatesCollection.document()
+        }
+
+        batch.set(routineDoc, routineTemplate)
+
+        if (routineId == null) {
+            val endUserRef = db.collection("endUser").document(endUserId!!)
+            batch.update(endUserRef, "routineTemplates", FieldValue.arrayUnion(routineDoc.id))
+        }
+
+        batch.commit()
             .addOnSuccessListener {
-                Toast.makeText(this, "Routine saved successfully", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Routine template saved successfully", Toast.LENGTH_SHORT).show()
                 finish()
             }
             .addOnFailureListener { e ->

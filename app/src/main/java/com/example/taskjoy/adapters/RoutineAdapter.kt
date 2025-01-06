@@ -8,11 +8,13 @@ import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.taskjoy.R
-import com.example.taskjoy.model.Routine
+import com.example.taskjoy.model.DailyRoutine
 import com.example.taskjoy.model.TaskJoyIcon
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class RoutineAdapter(
-    private val routines: List<Routine>,
+    private val routines: List<DailyRoutine>,
     private val context: Context,
     private val listener: RoutineClickListener
 ) : RecyclerView.Adapter<RoutineAdapter.TaskViewHolder>() {
@@ -25,8 +27,9 @@ class RoutineAdapter(
         private val stepQuantity: TextView = itemView.findViewById(R.id.routine_step_quantity)
         private val editIcon: ImageView = itemView.findViewById(R.id.routine_edit_icon)
         private val completionIndicator: ImageView = itemView.findViewById(R.id.routine_completion_indicator)
+        private val notes: TextView = itemView.findViewById(R.id.routine_notes)
 
-        fun bind(routine: Routine) {
+        fun bind(routine: DailyRoutine) {
             name.text = routine.name
             stepQuantity.text = "${routine.steps.size} steps"
             icon.setImageResource(TaskJoyIcon.fromString(routine.image).getDrawableResource())
@@ -39,6 +42,14 @@ class RoutineAdapter(
                 View.VISIBLE
             } else {
                 View.GONE
+            }
+
+            // Show notes if they exist
+            if (routine.notes.isNotEmpty()) {
+                notes.visibility = View.VISIBLE
+                notes.text = routine.notes
+            } else {
+                notes.visibility = View.GONE
             }
 
             // Set click listeners

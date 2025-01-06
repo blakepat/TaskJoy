@@ -1,11 +1,12 @@
 package com.example.taskjoy.adapters
 
+import com.example.taskjoy.model.DailyRoutine
 import com.example.taskjoy.model.Routine
 import com.example.taskjoy.model.Step
 
 interface RoutineClickListener {
-    fun onRoutineClick(routine: Routine)
-    fun onEditClick(routine: Routine)
+    fun onRoutineClick(routine: DailyRoutine)
+    fun onEditClick(routine: DailyRoutine)
 }
 
 interface StepClickListener {

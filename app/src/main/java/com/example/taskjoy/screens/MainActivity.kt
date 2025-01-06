@@ -13,6 +13,7 @@ import com.example.taskjoy.R
 import com.example.taskjoy.adapters.ChildAdapter
 import com.example.taskjoy.adapters.ChildClickListener
 import com.example.taskjoy.databinding.ActivityMainBinding
+import com.example.taskjoy.model.DailyRoutine
 import com.example.taskjoy.model.EndUser
 import com.example.taskjoy.model.Parent
 import com.google.android.material.snackbar.Snackbar
@@ -51,7 +52,6 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
     }
 
     private fun setupRecyclerView() {
-        // Pass the current user ID to the adapter
         childAdapter = ChildAdapter(childList, this, auth.currentUser!!.uid)
         binding.childRecyclerView.apply {
             adapter = childAdapter
@@ -73,7 +73,9 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
 
     private fun setupClickListeners() {
         binding.buttonToRoutineList.setOnClickListener {
-            val intent = Intent(this, RoutineListActivity::class.java)
+            val intent = Intent(this, RoutineListActivity::class.java).apply {
+                putExtra("selectedDate", Calendar.getInstance().timeInMillis)
+            }
             startActivity(intent)
         }
 
@@ -83,8 +85,9 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
         }
 
         binding.buttonViewDateRoutines.setOnClickListener {
-            val intent = Intent(this, RoutineListActivity::class.java)
-            intent.putExtra("selectedDate", selectedDate.timeInMillis)
+            val intent = Intent(this, RoutineListActivity::class.java).apply {
+                putExtra("selectedDate", selectedDate.timeInMillis)
+            }
             startActivity(intent)
         }
     }
@@ -117,8 +120,10 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
     }
 
     override fun onChildClick(id: String) {
-        val intent = Intent(this, RoutineListActivity::class.java)
-        intent.putExtra("endUser", id)
+        val intent = Intent(this, RoutineListActivity::class.java).apply {
+            putExtra("endUser", id)  // Passing the child endUser ID to RoutineListActivity
+            putExtra("selectedDate", selectedDate.timeInMillis)
+        }
         startActivity(intent)
     }
 
@@ -154,6 +159,32 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
                         db.collection("parents").document(parentId)
                             .collection("children").document(endUserId)
                     )
+
+                    // Delete all daily routines for this end user
+                    db.collection("endUser")
+                        .document(endUserId)
+                        .collection("dailyRoutines")
+                        .get()
+                        .addOnSuccessListener { routines ->
+                            val routineBatch = db.batch()
+                            routines.forEach { routine ->
+                                routineBatch.delete(routine.reference)
+                            }
+                            routineBatch.commit()
+                        }
+
+                    // Delete routine templates created for this end user
+                    db.collection("routineTemplates")
+                        .whereEqualTo("endUserId", endUserId)
+                        .get()
+                        .addOnSuccessListener { templates ->
+                            val templateBatch = db.batch()
+                            templates.forEach { template ->
+                                templateBatch.delete(template.reference)
+                            }
+                            templateBatch.commit()
+                        }
+
                 }.addOnSuccessListener {
                     getChildren() // Refresh the list after successful deletion
                 }.addOnFailureListener { e ->
