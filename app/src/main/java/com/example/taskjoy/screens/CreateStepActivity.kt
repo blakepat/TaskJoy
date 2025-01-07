@@ -17,6 +17,7 @@ class CreateStepActivity : AppCompatActivity() {
     private lateinit var db: FirebaseFirestore
     private var userId: String = "" // User ID
     private var routineId: String = "" // Routine ID
+    private var stepId: String? = null // Step ID (null for create, non-null for edit)
     private var selectedIcon: TaskJoyIcon = TaskJoyIcon.LUNCH // Default icon
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,8 +42,42 @@ class CreateStepActivity : AppCompatActivity() {
             return
         }
 
+        // Get stepId if we're editing
+        stepId = intent.getStringExtra("stepId")
+
         setupIconRecyclerView()
         setupClickListeners()
+
+        // If we're editing, load the existing step data
+        stepId?.let { loadExistingStep(it) }
+    }
+
+    private fun loadExistingStep(stepId: String) {
+        db.collection("steps").document(stepId)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    val step = document.toObject(Step::class.java)
+                    step?.let {
+                        // Populate the fields
+                        binding.etStepName.setText(it.name)
+                        binding.etStepNotes.setText(it.notes)
+
+                        // Update selected icon
+                        try {
+                            selectedIcon = TaskJoyIcon.valueOf(it.image)
+                            // Refresh the icon adapter with the new selection
+                            setupIconRecyclerView()
+                        } catch (e: IllegalArgumentException) {
+                            Log.w("ERROR", "Invalid icon name: ${it.image}")
+                        }
+                    }
+                }
+            }
+            .addOnFailureListener { e ->
+                Log.w("ERROR", "Error loading step: ${e.message}")
+                Toast.makeText(this, "Error loading step data", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun setupIconRecyclerView() {
@@ -68,7 +103,30 @@ class CreateStepActivity : AppCompatActivity() {
             return
         }
 
-        createNewStep(name)
+        if (stepId != null) {
+            updateExistingStep(name)
+        } else {
+            createNewStep(name)
+        }
+    }
+
+    private fun updateExistingStep(name: String) {
+        val stepRef = db.collection("steps").document(stepId!!)
+
+        val updates = mapOf(
+            "name" to name,
+            "image" to selectedIcon.name,
+            "notes" to binding.etStepNotes.text.toString()
+        )
+
+        stepRef.update(updates)
+            .addOnSuccessListener {
+                Toast.makeText(this, "Step updated successfully", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+            .addOnFailureListener { e ->
+                Toast.makeText(this, "Error updating step: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun createNewStep(name: String) {

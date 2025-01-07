@@ -115,6 +115,7 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
 
     override fun onEditClick(step: Step) {
         val intent = Intent(this, CreateStepActivity::class.java)
+        intent.putExtra("userId", endUserId)  // Pass the userId (endUserId)
         intent.putExtra("routineId", routineId)
         intent.putExtra("stepId", step.id)
         startActivity(intent)
