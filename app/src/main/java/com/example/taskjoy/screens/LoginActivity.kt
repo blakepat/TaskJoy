@@ -53,7 +53,7 @@ class LoginActivity : AppCompatActivity() {
 
 
     private fun login() {
-        if (binding.etEmail.text.isNotEmpty() && binding.etPassword.text.isNotEmpty()) {
+        if ((binding.etEmail.text?.isNotEmpty() == true) && (binding.etPassword.text?.isNotEmpty() == true)) {
             val emailFromUI = binding.etEmail.text.toString()
             val passwordFromUI = binding.etPassword.text.toString()
 

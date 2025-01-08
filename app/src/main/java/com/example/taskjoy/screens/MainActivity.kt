@@ -56,7 +56,6 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
         binding.childRecyclerView.apply {
             adapter = childAdapter
             layoutManager = LinearLayoutManager(this@MainActivity)
-            addItemDecoration(DividerItemDecoration(this@MainActivity, LinearLayoutManager.VERTICAL))
         }
     }
 
@@ -72,24 +71,24 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
     }
 
     private fun setupClickListeners() {
-        binding.buttonToRoutineList.setOnClickListener {
-            val intent = Intent(this, RoutineListActivity::class.java).apply {
-                putExtra("selectedDate", Calendar.getInstance().timeInMillis)
-            }
-            startActivity(intent)
-        }
+//        binding.buttonToRoutineList.setOnClickListener {
+//            val intent = Intent(this, RoutineListActivity::class.java).apply {
+//                putExtra("selectedDate", Calendar.getInstance().timeInMillis)
+//            }
+//            startActivity(intent)
+//        }
 
         binding.buttonCreateChild.setOnClickListener {
             val intent = Intent(this, CreateChildActivity::class.java)
             startActivity(intent)
         }
 
-        binding.buttonViewDateRoutines.setOnClickListener {
-            val intent = Intent(this, RoutineListActivity::class.java).apply {
-                putExtra("selectedDate", selectedDate.timeInMillis)
-            }
-            startActivity(intent)
-        }
+//        binding.buttonViewDateRoutines.setOnClickListener {
+//            val intent = Intent(this, RoutineListActivity::class.java).apply {
+//                putExtra("selectedDate", selectedDate.timeInMillis)
+//            }
+//            startActivity(intent)
+//        }
     }
 
     private fun updateCurrentDateDisplay() {

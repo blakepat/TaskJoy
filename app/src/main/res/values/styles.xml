@@ -15,25 +15,25 @@
     </style>
 
 
-    <style name="CalendarDateText" parent="TextAppearance.MaterialComponents.Body1">
-        <item name="android:textSize">16sp</item>
-    </style>
-
-    <style name="CalendarWeekText" parent="TextAppearance.MaterialComponents.Body2">
-        <item name="android:textSize">14sp</item>
-    </style>
-
-    <style name="CalendarViewCustom">
-        <item name="android:dateTextAppearance">@style/CalendarDateText</item>
-        <item name="android:weekDayTextAppearance">@style/CalendarWeekText</item>
-        <item name="android:headerMonthTextAppearance">@style/CalendarDateText</item>
+    <style name="CircleImageView" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
     </style>
 
 
+    <!-- styles.xml additions -->
+        <style name="CalendarViewCustom" parent="ThemeOverlay.MaterialComponents.MaterialCalendar">
+            <item name="colorPrimary">@color/accent_green</item>
+            <item name="colorOnPrimary">@color/card_background_white</item>
+            <item name="android:textColorPrimary">@color/text_primary</item>
+            <item name="android:fontFamily">sans-serif</item>
+        </style>
 
+        <style name="CalendarDateText" parent="TextAppearance.MaterialComponents.Body2">
+            <item name="android:textSize">14sp</item>
+        </style>
 
-
-    <!-- Add these colors to your colors.xml -->
-    <color name="calendar_selected_day">#4CAF50</color>  <!-- Green color similar to the mood tracking image -->
-    <color name="calendar_today">#B2DFDB</color>        <!-- Light green for today's date -->
+        <style name="CalendarWeekText" parent="TextAppearance.MaterialComponents.Caption">
+            <item name="android:textSize">12sp</item>
+        </style>
 </resources>

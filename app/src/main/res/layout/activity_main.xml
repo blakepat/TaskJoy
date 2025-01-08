@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_light">
+    android:background="@color/background_cream">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -20,18 +20,22 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:strokeWidth="0dp">
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="@color/primary_blue">
 
                 <TextView
                     android:id="@+id/currentDateDisplay"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:padding="12dp"
-                    android:textSize="16sp"
-                    android:text="January 5, 2025"/>
+                    android:textSize="18sp"
+                    android:textColor="@color/card_background_white"
+                    android:textStyle="bold"
+                    android:gravity="center"
+                    android:text="January 8, 2025"/>
 
             </com.google.android.material.card.MaterialCardView>
 
@@ -39,10 +43,11 @@
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:strokeWidth="0dp">
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="@color/card_background_white">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -50,91 +55,14 @@
                     android:orientation="vertical"
                     android:padding="8dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Calendar"
-                        android:textSize="16sp"
-                        android:textColor="@color/black"
-                        android:layout_marginBottom="2dp"
-                        android:layout_marginStart="4dp"/>
-
                     <CalendarView
                         android:id="@+id/calendarView"
                         android:layout_width="match_parent"
-                        android:layout_height="320dp"
+                        android:layout_height="300dp"
                         android:background="@android:color/transparent"
+                        android:theme="@style/CalendarViewCustom"
                         android:dateTextAppearance="@style/CalendarDateText"
-                        android:weekDayTextAppearance="@style/CalendarWeekText"
-                        android:theme="@style/CalendarViewCustom"/>
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/buttonViewDateRoutines"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="View Routines for Selected Date"
-                        android:textAllCaps="false"
-                        app:cornerRadius="8dp"
-                        android:minHeight="48dp"
-                        android:textSize="14sp"/>
-
-                </LinearLayout>
-
-            </com.google.android.material.card.MaterialCardView>
-
-            <!-- Quick Actions Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
-                app:strokeWidth="0dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="12dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Quick Actions"
-                        android:textSize="16sp"
-                        android:textColor="@color/black"
-                        android:layout_marginBottom="4dp"/>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:weightSum="2">
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/buttonToRoutineList"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="View All Routines"
-                            android:textAllCaps="false"
-                            app:cornerRadius="8dp"
-                            android:layout_marginEnd="4dp"
-                            android:minHeight="48dp"
-                            android:textSize="14sp"/>
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/buttonCreateChild"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="Add Child"
-                            android:textAllCaps="false"
-                            app:cornerRadius="8dp"
-                            android:layout_marginStart="4dp"
-                            android:minHeight="48dp"
-                            android:textSize="14sp"/>
-
-                    </LinearLayout>
+                        android:weekDayTextAppearance="@style/CalendarWeekText"/>
 
                 </LinearLayout>
 
@@ -145,8 +73,66 @@
                 android:id="@+id/childRecyclerView"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:nestedScrollingEnabled="false"/>
+                android:layout_marginBottom="12dp"
+                android:nestedScrollingEnabled="false"
+                android:padding="4dp"/>
+
+            <!-- Quick Actions Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardCornerRadius="16dp"
+                android:layout_marginBottom="8dp"
+                app:cardElevation="4dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="@color/card_background_white">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="12dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Fun Actions"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginBottom="12dp"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/buttonCreateChild"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Add Child"
+                        android:textAllCaps="false"
+                        app:cornerRadius="12dp"
+                        android:minHeight="48dp"
+                        android:textSize="16sp"
+                        android:layout_marginBottom="8dp"
+                        app:backgroundTint="@color/playful_pink"
+                        app:icon="@drawable/ic_person_add"
+                        app:iconGravity="textStart"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/buttonToGames"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Play Games!"
+                        android:textAllCaps="false"
+                        app:cornerRadius="12dp"
+                        android:minHeight="56dp"
+                        android:textSize="18sp"
+                        app:backgroundTint="@color/secondary_yellow"
+                        app:icon="@drawable/ic_games"
+                        app:iconGravity="textStart"
+                        android:textColor="@color/text_primary"/>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
 
         </LinearLayout>
 
