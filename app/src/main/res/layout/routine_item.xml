@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -16,17 +17,31 @@
         android:padding="16dp"
         android:background="?android:attr/selectableItemBackground">
 
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/routine_icon"
+        <FrameLayout
+            android:id="@+id/routine_icon_container"
             android:layout_width="56dp"
             android:layout_height="56dp"
-            android:padding="14dp"
-            android:background="@color/primary_blue"
-            android:scaleType="fitCenter"
-            app:shapeAppearanceOverlay="@style/CircleImageView"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/routine_icon_background"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/primary_blue"
+                app:strokeWidth="2dp"
+                app:strokeColor="@color/black"
+                app:shapeAppearanceOverlay="@style/CircleImageView" />
+
+            <ImageView
+                android:id="@+id/routine_icon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center"
+                android:scaleType="fitCenter" />
+
+        </FrameLayout>
 
         <TextView
             android:id="@+id/routine_name"
@@ -37,7 +52,7 @@
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
-            app:layout_constraintStart_toEndOf="@id/routine_icon"
+            app:layout_constraintStart_toEndOf="@id/routine_icon_container"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toStartOf="@id/routine_completion_indicator" />
 
@@ -49,7 +64,7 @@
             android:layout_marginTop="4dp"
             android:textSize="14sp"
             android:textColor="@color/secondary_text"
-            app:layout_constraintStart_toEndOf="@id/routine_icon"
+            app:layout_constraintStart_toEndOf="@id/routine_icon_container"
             app:layout_constraintTop_toBottomOf="@id/routine_name" />
 
         <TextView
@@ -64,7 +79,7 @@
             android:visibility="gone"
             android:ellipsize="end"
             android:maxLines="2"
-            app:layout_constraintStart_toEndOf="@id/routine_icon"
+            app:layout_constraintStart_toEndOf="@id/routine_icon_container"
             app:layout_constraintEnd_toStartOf="@id/routine_completion_indicator"
             app:layout_constraintTop_toBottomOf="@id/routine_step_quantity" />
 

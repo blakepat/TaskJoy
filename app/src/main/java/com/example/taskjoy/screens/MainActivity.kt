@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -89,6 +90,17 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
 //            }
 //            startActivity(intent)
 //        }
+
+        binding.buttonToGames.setOnClickListener {
+            try {
+                Log.d("EmotionGame", "Attempting to start EmotionMemoryActivity")
+                val intent = Intent(this@MainActivity, EmotionMemoryActivity::class.java)
+                startActivity(intent)
+            } catch (e: Exception) {
+                Log.e("EmotionGame", "Failed to start EmotionMemoryActivity", e)
+                Toast.makeText(this, "Unable to start game: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun updateCurrentDateDisplay() {

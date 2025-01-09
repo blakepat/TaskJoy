@@ -33,14 +33,11 @@ class StepAdapter(
             stepNotes.text = currItem.notes
             stepIcon.setImageResource(TaskJoyIcon.fromString(currItem.image).getDrawableResource())
 
-            // Handle completion indicator
-            completionIndicator.visibility = if (currItem.completed) View.VISIBLE else View.GONE
-
             // Handle edit icon visibility
-            stepEditIcon.visibility = if (isEditMode) View.VISIBLE else View.GONE
+            editIconContainer.visibility = if (isEditMode) View.VISIBLE else View.GONE
 
-            // If step is completed and we're not in edit mode, show the completion indicator
-            completionIndicator.visibility = if (currItem.completed && !isEditMode) {
+            // Handle completion indicator
+            completionIndicatorContainer.visibility = if (currItem.completed && !isEditMode) {
                 View.VISIBLE
             } else {
                 View.GONE
@@ -50,7 +47,7 @@ class StepAdapter(
                 listener.onStepClick(currItem)
             }
 
-            stepEditIcon.setOnClickListener {
+            editIconContainer.setOnClickListener {
                 listener.onEditClick(currItem)
             }
         }

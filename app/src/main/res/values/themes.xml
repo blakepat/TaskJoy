@@ -1,16 +1,14 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="Base.Theme.TaskJoy" parent="Theme.Material3.DayNight">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
-
+    <style name="Base.Theme.TaskJoy" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
         <item name="colorPrimary">#FB0093FB</item>
-        <!-- Optional: Darker shade for the status bar -->
-        <item name="colorPrimaryDark">#FB0093FB</item>
-        <!-- Optional: Accent color for widgets -->
+        <item name="colorPrimaryVariant">#FB0093FB</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="android:statusBarColor">#FB0093FB</item>
         <item name="colorAccent">#FFC107</item>
 
-<!--        <item name="fontFamily">@font/poppins_medium</item>-->
+        <!-- Material CardView style -->
+        <item name="materialCardViewStyle">@style/Widget.MaterialComponents.CardView</item>
     </style>
 
     <style name="Theme.TaskJoy" parent="Base.Theme.TaskJoy" />

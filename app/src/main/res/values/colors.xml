@@ -39,4 +39,13 @@
     <color name="semi_transparent_black">#80000000</color>
     <color name="light_gray">#EEEEEE</color>
     <color name="medium_gray">#9E9E9E</color>
+
+
+    <color name="emotion_card_back">#E0E0E0</color>
+    <color name="emotion_happy">#FFD700</color>
+    <color name="emotion_sad">#4169E1</color>
+    <color name="emotion_excited">#32CD32</color>
+    <color name="emotion_worried">#9370DB</color>
+    <color name="emotion_love">#FF69B4</color>
+    <color name="emotion_proud">#FFA500</color>
 </resources>

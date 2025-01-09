@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">TaskJoy</string>
+
+    <string name="moves_count">Moves: %d</string>
+    <string name="congratulations">Congratulations!</string>
+    <string name="won_in_moves">You won in %d moves!</string>
+    <string name="play_again">Play Again</string>
 </resources>
