@@ -4,15 +4,16 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import com.bumptech.glide.Glide
+import com.example.taskjoy.R
 import com.example.taskjoy.databinding.ActivityStepDetailsBinding
 import com.example.taskjoy.model.Step
+import com.example.taskjoy.model.TaskJoyIcon
 import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import androidx.core.content.ContextCompat
-import com.example.taskjoy.R
-import com.example.taskjoy.model.TaskJoyIcon
-import com.google.firebase.Timestamp
+import java.io.File
 
 class StepDetailsActivity : AppCompatActivity() {
     private lateinit var binding: ActivityStepDetailsBinding
@@ -195,7 +196,32 @@ class StepDetailsActivity : AppCompatActivity() {
 
     private fun setupUI() {
         binding.textStepTitle.text = step.name
-        binding.stepImage.setImageResource(TaskJoyIcon.fromString(step.image).getDrawableResource())
+
+        // Safely handle icon loading
+        try {
+            if (step.image == TaskJoyIcon.CUSTOM.name && step.customIconPath != null) {
+                // Load custom icon using Glide
+                Glide.with(this)
+                    .load(File(step.customIconPath))
+                    .centerCrop()
+                    .error(R.drawable.ic_brush_teeth)  // Fallback icon if load fails
+                    .into(binding.stepImage)
+            } else {
+                try {
+                    val icon = TaskJoyIcon.valueOf(step.image.uppercase())
+                    binding.stepImage.setImageResource(icon.drawableResId)
+                } catch (e: IllegalArgumentException) {
+                    // If the image string doesn't match any enum value, set default
+                    binding.stepImage.setImageResource(R.drawable.ic_brush_teeth)
+                    Log.e("StepDetailsActivity", "Invalid icon name: ${step.image}", e)
+                }
+            }
+        } catch (e: Exception) {
+            // Set default icon if there's any other error
+            binding.stepImage.setImageResource(R.drawable.ic_brush_teeth)
+            Log.e("StepDetailsActivity", "Error setting step icon", e)
+        }
+
         binding.notesEditText.setText(step.notes)
     }
 }

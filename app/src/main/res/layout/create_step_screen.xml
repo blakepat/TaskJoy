@@ -49,7 +49,8 @@
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -85,7 +86,9 @@
                             android:id="@+id/etStepName"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Step Name"/>
+                            android:hint="Step Name"
+                            android:maxLines="1"
+                            android:inputType="text"/>
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout
@@ -101,9 +104,11 @@
                             android:id="@+id/etStepNotes"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Notes"
+                            android:hint="Notes (Optional)"
                             android:minLines="3"
-                            android:gravity="top"/>
+                            android:maxLines="5"
+                            android:gravity="top"
+                            android:inputType="textMultiLine"/>
                     </com.google.android.material.textfield.TextInputLayout>
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -136,6 +141,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:clipToPadding="false"
+                        android:overScrollMode="never"
                         android:padding="4dp"/>
                 </LinearLayout>
 

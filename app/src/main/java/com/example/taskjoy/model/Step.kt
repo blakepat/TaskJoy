@@ -9,6 +9,7 @@ data class Step(
     var completed: Boolean = false,
     var completedAt: Timestamp? = null,
     var notes: String = "",
+    val customIconPath: String? = null,
     @DocumentId
     val id: String = "",
 )

@@ -4,6 +4,7 @@ import androidx.constraintlayout.motion.widget.Key.CUSTOM
 import com.example.taskjoy.R
 
 enum class TaskJoyIcon(val drawableResId: Int) {
+    CUSTOM(-1),  // Special case for custom icons
     MORNING(R.drawable.ic_morning),
     SCHOOL(R.drawable.ic_school),
     BEDTIME(R.drawable.ic_bed_time),
@@ -29,11 +30,10 @@ enum class TaskJoyIcon(val drawableResId: Int) {
     companion object {
         fun fromString(value: String?): TaskJoyIcon {
             if (value == null) return MORNING
-
             return try {
                 valueOf(value.uppercase())
             } catch (e: IllegalArgumentException) {
-                MORNING // Return CUSTOM if string doesn't match any enum
+                CUSTOM
             }
         }
     }
