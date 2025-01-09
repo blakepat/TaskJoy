@@ -1,5 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Base colors -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Background colors -->
+    <color name="background_light">#F5F5F5</color>
+    <color name="background_cream">#FFF8E1</color>
+
+    <!-- Text colors -->
+    <color name="text_primary">#212121</color>
+    <color name="primary_text">#212121</color>
+    <color name="secondary_text">#757575</color>
+
+    <!-- Icon and accent colors -->
+    <color name="icon_background">#2196F3</color>
+    <color name="accent_color">#2196F3</color>
+    <color name="step_icon_background">#2196F3</color>
+
+    <!-- Status colors -->
+    <color name="success_light">#E8F5E9</color>
+    <color name="edit_light">#FFF3E0</color>
+
+    <!-- Child-friendly theme colors -->
+    <color name="primary_blue">#2196F3</color>
+    <color name="secondary_yellow">#FFD600</color>
+    <color name="accent_green">#4CAF50</color>
+    <color name="fun_purple">#7C4DFF</color>
+    <color name="playful_pink">#FF4081</color>
+
+    <!-- Calendar specific colors -->
+    <color name="calendar_selected_day">#4CAF50</color>
+    <color name="calendar_today">#E3F2FD</color>
+    <color name="card_background_white">#FFFFFF</color>
+
+    <!-- Additional utility colors -->
+    <color name="transparent">#00000000</color>
+    <color name="semi_transparent_black">#80000000</color>
+    <color name="light_gray">#EEEEEE</color>
+    <color name="medium_gray">#9E9E9E</color>
+
+
+    <color name="emotion_card_back">#E0E0E0</color>
+    <color name="emotion_happy">#FFD700</color>
+    <color name="emotion_sad">#4169E1</color>
+    <color name="emotion_excited">#32CD32</color>
+    <color name="emotion_worried">#9370DB</color>
+    <color name="emotion_love">#FF69B4</color>
+    <color name="emotion_proud">#FFA500</color>
 </resources>

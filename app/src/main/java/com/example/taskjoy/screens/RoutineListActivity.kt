@@ -1,198 +1,283 @@
 package com.example.taskjoy.screens
 
-
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import android.widget.Toast
+import android.view.Menu
+import android.view.MenuItem
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 import com.example.taskjoy.R
-import com.example.taskjoy.databinding.ActivityRoutineListBinding
 import com.example.taskjoy.adapters.RoutineAdapter
 import com.example.taskjoy.adapters.RoutineClickListener
-import com.example.taskjoy.model.Routine
+import com.example.taskjoy.databinding.ActivityRoutineListBinding
+import com.example.taskjoy.model.DailyRoutine
+import com.example.taskjoy.model.RoutineTemplate
 import com.google.android.material.snackbar.Snackbar
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.QueryDocumentSnapshot
-import com.google.firebase.firestore.QuerySnapshot
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import com.google.firebase.firestore.FieldPath
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
-
-    lateinit var binding: ActivityRoutineListBinding
-    private lateinit var recyclerView: RecyclerView
+    private lateinit var binding: ActivityRoutineListBinding
     private lateinit var routineAdapter: RoutineAdapter
-    private val routineList = mutableListOf<Routine>()
-    private var db = Firebase.firestore
+    private val routineList = mutableListOf<DailyRoutine>()
+    private var isEditMode = false
+    private val db = Firebase.firestore
     private lateinit var auth: FirebaseAuth
+    private var endUserId: String? = null
+    private var selectedDate: Calendar = Calendar.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityRoutineListBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        supportActionBar!!.setTitle("Routines")
+        supportActionBar?.setTitle("Routines")
 
-        val endUserId = intent.getStringExtra("endUser")
         auth = Firebase.auth
+        // Get endUserId from intent if available
+        endUserId = intent.getStringExtra("endUser")
 
-        // Initialize RecyclerView
-        recyclerView = findViewById(R.id.recyclerViewRoutines)
-        recyclerView.layoutManager = LinearLayoutManager(this)
-        // Set up the adapter
-        routineAdapter = RoutineAdapter(routineList, this, this) // Pass the task list, context, and listener
-        recyclerView.adapter = routineAdapter
-
-        //Get Routines
-        if (endUserId != null) {
-            getSpecificEndUserRoutines(endUserId)
-        } else {
-            //Get routines from firebase db
-            getAllEndUserRoutines(auth.currentUser!!.uid)
+        // Get selected date from intent if it exists
+        intent.getLongExtra("selectedDate", -1).let { timestamp ->
+            if (timestamp != -1L) {
+                selectedDate.timeInMillis = timestamp
+            }
         }
 
+        // If endUserId is not found in intent, retrieve it based on the authenticated user
+        if (endUserId == null) {
+            auth.currentUser?.uid?.let { uid ->
+                getAllEndUserDailyRoutines(uid)
+            } ?: run {
+                Snackbar.make(binding.root, "Error: User not authenticated", Snackbar.LENGTH_SHORT).show()
+            }
+        }
 
-        binding.fabAddRoutine.setOnClickListener {
-            //TODO: show create/edit routine screen
+        setupRecyclerView()
+        setupClickListeners()
+        setupDateDisplay()
+    }
+
+    private fun setupDateDisplay() {
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+        binding.textViewDate.text = dateFormat.format(selectedDate.time)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        endUserId?.let { id ->
+            createDailyRoutinesIfNeeded(id)
+            getSpecificEndUserDailyRoutines(id)
+        } ?: run {
+            auth.currentUser?.uid?.let { uid ->
+                getAllEndUserDailyRoutines(uid)
+            } ?: run {
+                Snackbar.make(binding.root, "Error: User not authenticated", Snackbar.LENGTH_SHORT).show()
+            }
         }
     }
 
+    private fun setupRecyclerView() {
+        routineAdapter = RoutineAdapter(routineList, this, this)
+        binding.recyclerViewRoutines.apply {
+            layoutManager = LinearLayoutManager(this@RoutineListActivity)
+            adapter = routineAdapter
+        }
+    }
 
+    private fun setupClickListeners() {
+        binding.fabAddRoutine.setOnClickListener {
+            val intent = Intent(this, CreateRoutineActivity::class.java).apply {
+                putExtra("endUser", endUserId)
+            }
+            startActivity(intent)
+        }
+    }
 
-    // Click listener methods
-    override fun onRoutineClick(routine: Routine) {
-        val intent = Intent(this, StepListActivity::class.java)
-        //PASS ROUTINE ID TO NEXT SCREEN
-        intent.putExtra("routineId", routine.id)
+    override fun onRoutineClick(routine: DailyRoutine) {
+        val intent = Intent(this, StepListActivity::class.java).apply {
+            Log.w("TESTING", "ROUTINE CLICK ON ROUTINE LIST SCREEN, ID: ${routine.id}")
+            putExtra("routineId", routine.id)
+            putExtra("isDaily", true)
+            putExtra("endUser", endUserId)
+        }
         startActivity(intent)
     }
 
-    override fun onEditClick(routine: Routine) {
-        //TODO: Show create/edit screen to edit selected routine
-
-        Toast.makeText(this, "Edit Step: ${routine.name}", Toast.LENGTH_SHORT).show()
+    override fun onEditClick(routine: DailyRoutine) {
+        val intent = Intent(this, CreateRoutineActivity::class.java).apply {
+            putExtra("routineId", routine.templateId)
+            putExtra("endUser", endUserId)
+        }
+        startActivity(intent)
     }
 
+    private fun createDailyRoutinesIfNeeded(endUserId: String) {
+        val startOfDay = Calendar.getInstance().apply {
+            timeInMillis = selectedDate.timeInMillis
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
 
+        val endOfDay = Calendar.getInstance().apply {
+            timeInMillis = selectedDate.timeInMillis
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }.time
 
-    private fun getSpecificEndUserRoutines(endUserId: String) {
-        db.collection("endUser").document(endUserId)
+        db.collection("endUser")
+            .document(endUserId)
+            .collection("dailyRoutines")
+            .whereGreaterThanOrEqualTo("date", Timestamp(startOfDay))
+            .whereLessThanOrEqualTo("date", Timestamp(endOfDay))
             .get()
-            .addOnSuccessListener { endUserDoc: DocumentSnapshot ->
-                val routineIds = endUserDoc.get("routines") as? List<String>
-                Log.w("TESTING", "routine IDs: $routineIds")
+            .addOnSuccessListener { dailyRoutines ->
+                if (dailyRoutines.isEmpty) {
+                    createDailyRoutinesFromTemplates(endUserId)
+                }
+            }
+    }
 
-                if (!routineIds.isNullOrEmpty()) {
-                    routineList.clear() // Clear existing routines
-
-                    db.collection("routines")
-                        .whereIn(FieldPath.documentId(), routineIds)
+    private fun createDailyRoutinesFromTemplates(endUserId: String) {
+        db.collection("endUser")
+            .document(endUserId)
+            .get()
+            .addOnSuccessListener { endUserDoc ->
+                val templateIds = endUserDoc.get("routineTemplates") as? List<*>
+                if (templateIds != null) {
+                    db.collection("routineTemplates")
+                        .whereIn(FieldPath.documentId(), templateIds)
                         .get()
-                        .addOnSuccessListener { routineResults: QuerySnapshot ->
-                            for (routineDoc: QueryDocumentSnapshot in routineResults) {
-                                val routineFromDB = routineDoc.toObject(Routine::class.java)
-                                routineList.add(routineFromDB)
-                                Log.w("TESTING", "Added routine: ${routineFromDB.id}")
+                        .addOnSuccessListener { templates ->
+                            val batch = db.batch()
+
+                            templates.forEach { template ->
+                                val templateData = template.toObject(RoutineTemplate::class.java)
+
+                                val dailyRoutineRef = db.collection("endUser")
+                                    .document(endUserId)
+                                    .collection("dailyRoutines")
+                                    .document()
+
+                                val dailyRoutine = DailyRoutine(
+                                    templateId = template.id,
+                                    name = templateData.name,
+                                    date = Timestamp(selectedDate.time),
+                                    image = templateData.image,
+                                    steps = templateData.steps.toMutableList(),
+                                    completed = false,
+                                    notes = ""
+                                )
+
+                                batch.set(dailyRoutineRef, dailyRoutine)
                             }
 
-                            if (routineList.isEmpty()) {
-                                //TODO: CREATE AN EMPTY LIST VIEW
+                            batch.commit().addOnSuccessListener {
+                                getSpecificEndUserDailyRoutines(endUserId)
                             }
-
-                            routineAdapter.notifyDataSetChanged()
-                            Log.w("TESTING", "Total routines added: ${routineList.size}")
-                        }
-                        .addOnFailureListener { error ->
-                            Log.w("TESTING", "Error getting routines.", error)
-                            Snackbar.make(binding.root, "Error getting routines",
-                                Snackbar.LENGTH_SHORT).show()
                         }
                 }
             }
+    }
+
+    private fun getSpecificEndUserDailyRoutines(endUserId: String) {
+        val startOfDay = Calendar.getInstance().apply {
+            timeInMillis = selectedDate.timeInMillis
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.time
+
+        val endOfDay = Calendar.getInstance().apply {
+            timeInMillis = selectedDate.timeInMillis
+            set(Calendar.HOUR_OF_DAY, 23)
+            set(Calendar.MINUTE, 59)
+            set(Calendar.SECOND, 59)
+            set(Calendar.MILLISECOND, 999)
+        }.time
+
+        db.collection("endUser")
+            .document(endUserId)
+            .collection("dailyRoutines")
+            .whereGreaterThanOrEqualTo("date", Timestamp(startOfDay))
+            .whereLessThanOrEqualTo("date", Timestamp(endOfDay))
+            .get()
+            .addOnSuccessListener { dailyRoutines ->
+                routineList.clear()
+
+                if (dailyRoutines.isEmpty) {
+                    binding.recyclerViewRoutines.visibility = View.GONE
+                    binding.emptyState.root.visibility = View.VISIBLE
+                } else {
+                    binding.recyclerViewRoutines.visibility = View.VISIBLE
+                    binding.emptyState.root.visibility = View.GONE
+
+                    for (routineDoc in dailyRoutines) {
+                        val routine = routineDoc.toObject(DailyRoutine::class.java).apply {
+                            id = routineDoc.id
+                        }
+                        routineList.add(routine)
+                    }
+                }
+                routineAdapter.notifyDataSetChanged()
+            }
             .addOnFailureListener { error ->
-                Log.w("TESTING", "Error getting end user.", error)
-                Snackbar.make(binding.root, "Error getting end user data",
+                Snackbar.make(binding.root,
+                    "Error getting routines: ${error.message}",
                     Snackbar.LENGTH_SHORT).show()
             }
     }
 
-
-
-    private fun getAllEndUserRoutines(parentId: String) {
-        // First get the parent document to access their children list
-        Log.w("TESTING", "parentId: $parentId")
+    private fun getAllEndUserDailyRoutines(parentId: String) {
         db.collection("parents").document(parentId)
             .get()
-            .addOnSuccessListener { parentDoc: DocumentSnapshot ->
-                // Get the list of child (endUser) IDs
+            .addOnSuccessListener { parentDoc ->
                 val childrenIds = parentDoc.get("children") as? List<String>
-                Log.w("TESTING", "childIDs: $childrenIds")
+
                 if (!childrenIds.isNullOrEmpty()) {
-                    // Query endUsers collection for documents with matching IDs
-                    db.collection("endUser")
-                        .whereIn(FieldPath.documentId(), childrenIds)
-                        .get()
-                        .addOnSuccessListener { endUserResults: QuerySnapshot ->
-                            val allRoutineIds = mutableListOf<String>()
-                            Log.w("TESTING", "routine: $allRoutineIds")
-                            // Collect all routine IDs from each endUser
-                            for (endUserDoc: QueryDocumentSnapshot in endUserResults) {
-                                val routineIds = endUserDoc.get("routines") as? List<String>
-                                if (!routineIds.isNullOrEmpty()) {
-                                    allRoutineIds.addAll(routineIds)
-                                } else {
-                                    //TODO: CREATE AN EMPTY LIST VIEW
-                                }
-                            }
-
-                            if (allRoutineIds.isNotEmpty()) {
-                                routineList.clear() // Clear existing routines
-
-                                // Finally, query the routines collection
-                                db.collection("routines")
-                                    .whereIn(FieldPath.documentId(), allRoutineIds)
-                                    .get()
-                                    .addOnSuccessListener { routineResults: QuerySnapshot ->
-                                        for (routineDoc: QueryDocumentSnapshot in routineResults) {
-                                            val routineFromDB = routineDoc.toObject(Routine::class.java)
-                                            routineList.add(routineFromDB)
-                                            Log.w("TESTING", "Added routine: ${routineFromDB.id}")
-                                        }
-
-                                        if (routineList.isEmpty()) {
-                                            //TODO: CREATE AN EMPTY LIST VIEW
-                                        }
-                                        
-
-                                        routineAdapter.notifyDataSetChanged()
-                                        Log.w("TESTING", "Total routines added: ${routineList.size}")
-                                    }
-                                    .addOnFailureListener { error ->
-                                        Log.w("TESTING", "Error getting routines.", error)
-                                        Snackbar.make(binding.root, "Error getting routines",
-                                            Snackbar.LENGTH_SHORT).show()
-                                    }
-                            }
-                        }
-                        .addOnFailureListener { error ->
-                            Log.w("TESTING", "Error getting endUsers.", error)
-                            Snackbar.make(binding.root, "Error getting end users",
-                                Snackbar.LENGTH_SHORT).show()
-                        }
+                    routineList.clear()
+                    childrenIds.forEach { childId ->
+                        getSpecificEndUserDailyRoutines(childId)
+                    }
+                } else {
+                    binding.recyclerViewRoutines.visibility = View.GONE
+                    binding.emptyState.root.visibility = View.VISIBLE
                 }
             }
             .addOnFailureListener { error ->
-                Log.w("TESTING", "Error getting parent.", error)
-                Snackbar.make(binding.root, "Error getting parent data",
+                Snackbar.make(binding.root,
+                    "Error getting parent data: ${error.message}",
                     Snackbar.LENGTH_SHORT).show()
             }
     }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.routine_list_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_toggle_edit -> {
+                isEditMode = !isEditMode
+                item.setIcon(if (isEditMode) R.drawable.ic_checkmark else R.drawable.ic_edit)
+                routineAdapter.setEditMode(isEditMode)
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
 }
-
-
-

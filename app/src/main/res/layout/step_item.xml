@@ -1,47 +1,131 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="8dp"
-    android:background="@drawable/button_background">
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="6dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="4dp"
+    app:cardBackgroundColor="@color/card_background_white">
 
-    <!-- Icon -->
-    <ImageView
-        android:id="@+id/step_icon"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginEnd="16dp"
-        android:src="@drawable/ic_morning" />
-
-    <!-- Task Name -->
-    <TextView
-        android:id="@+id/step_name"
-        android:layout_width="0dp"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Step Name"
-        android:textColor="#000000"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:layout_constraintStart_toEndOf="@id/step_icon"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/step_edit_icon"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp" />
+        android:padding="16dp"
+        android:background="?android:attr/selectableItemBackground">
 
-    <!-- Edit Icon -->
-    <ImageView
-        android:id="@+id/step_edit_icon"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:layout_marginStart="8dp"
-        android:src="@drawable/ic_edit"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        <FrameLayout
+            android:id="@+id/step_icon_container"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/step_icon_background"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/fun_purple"
+                app:strokeWidth="2dp"
+                app:strokeColor="@color/black"
+                app:shapeAppearanceOverlay="@style/CircleImageView" />
+
+            <ImageView
+                android:id="@+id/stepIcon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="center"
+                android:scaleType="fitCenter" />
+
+        </FrameLayout>
+
+        <TextView
+            android:id="@+id/stepName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary"
+            app:layout_constraintStart_toEndOf="@id/step_icon_container"
+            app:layout_constraintEnd_toStartOf="@id/completion_indicator_container"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Step Name" />
+
+        <TextView
+            android:id="@+id/stepNotes"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginTop="4dp"
+            android:textSize="14sp"
+            android:textColor="@color/secondary_text"
+            android:maxLines="2"
+            android:ellipsize="end"
+            app:layout_constraintStart_toEndOf="@id/step_icon_container"
+            app:layout_constraintEnd_toStartOf="@id/completion_indicator_container"
+            app:layout_constraintTop_toBottomOf="@id/stepName"
+            tools:text="Notes preview text that might be long" />
+
+        <FrameLayout
+            android:id="@+id/completion_indicator_container"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="8dp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toStartOf="@id/edit_icon_container"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/completion_indicator_background"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/accent_green"
+                app:shapeAppearanceOverlay="@style/CircleImageView" />
+
+            <ImageView
+                android:id="@+id/completionIndicator"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_checkmark"
+                android:scaleType="fitCenter" />
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/edit_icon_container"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/edit_icon_background"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/playful_pink"
+                app:shapeAppearanceOverlay="@style/CircleImageView" />
+
+            <ImageView
+                android:id="@+id/stepEditIcon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_edit"
+                android:scaleType="fitCenter" />
+
+        </FrameLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

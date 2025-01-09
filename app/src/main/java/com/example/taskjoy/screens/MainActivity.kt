@@ -6,38 +6,37 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.taskjoy.R
 import com.example.taskjoy.adapters.ChildAdapter
 import com.example.taskjoy.adapters.ChildClickListener
-import com.example.taskjoy.adapters.StepAdapter
 import com.example.taskjoy.databinding.ActivityMainBinding
+import com.example.taskjoy.model.DailyRoutine
 import com.example.taskjoy.model.EndUser
 import com.example.taskjoy.model.Parent
-import com.example.taskjoy.model.Routine
-import com.example.taskjoy.model.Step
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldPath
-import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.QueryDocumentSnapshot
 import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import java.text.SimpleDateFormat
+import java.util.*
 
 class MainActivity : AppCompatActivity(), ChildClickListener {
 
     private lateinit var binding: ActivityMainBinding
-
-    var db = Firebase.firestore
+    private var db = Firebase.firestore
     private lateinit var auth: FirebaseAuth
     private var childList = mutableListOf<EndUser>()
     private lateinit var childAdapter: ChildAdapter
-
+    private lateinit var selectedDate: Calendar
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,38 +44,73 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
         setContentView(binding.root)
 
         auth = Firebase.auth
+        selectedDate = Calendar.getInstance()
 
+        setupRecyclerView()
+        setupCalendar()
         setupClickListeners()
-
-
-
-        //Setup Recycler view
-        childAdapter = ChildAdapter(childList, this)
-        binding.childRecyclerView.adapter = childAdapter
-        binding.childRecyclerView.layoutManager = LinearLayoutManager(this)
-        binding.childRecyclerView.addItemDecoration(
-            DividerItemDecoration(
-                this,
-                LinearLayoutManager.VERTICAL
-            )
-        )
+        updateCurrentDateDisplay()
     }
 
+    private fun setupRecyclerView() {
+        childAdapter = ChildAdapter(childList, this, auth.currentUser!!.uid)
+        binding.childRecyclerView.apply {
+            adapter = childAdapter
+            layoutManager = LinearLayoutManager(this@MainActivity)
+        }
+    }
 
-    override fun onResume() {
-        super.onResume()
-        getChildren()
+    private fun setupCalendar() {
+        binding.calendarView.apply {
+            date = System.currentTimeMillis()
+
+            setOnDateChangeListener { _, year, month, dayOfMonth ->
+                selectedDate.set(year, month, dayOfMonth)
+                updateCurrentDateDisplay()
+            }
+        }
     }
 
     private fun setupClickListeners() {
-        binding.buttonToRoutineList.setOnClickListener {
-            val intent = Intent(this, RoutineListActivity::class.java)
-            startActivity(intent)
-        }
+//        binding.buttonToRoutineList.setOnClickListener {
+//            val intent = Intent(this, RoutineListActivity::class.java).apply {
+//                putExtra("selectedDate", Calendar.getInstance().timeInMillis)
+//            }
+//            startActivity(intent)
+//        }
+
         binding.buttonCreateChild.setOnClickListener {
             val intent = Intent(this, CreateChildActivity::class.java)
             startActivity(intent)
         }
+
+//        binding.buttonViewDateRoutines.setOnClickListener {
+//            val intent = Intent(this, RoutineListActivity::class.java).apply {
+//                putExtra("selectedDate", selectedDate.timeInMillis)
+//            }
+//            startActivity(intent)
+//        }
+
+        binding.buttonToGames.setOnClickListener {
+            try {
+                Log.d("EmotionGame", "Attempting to start EmotionMemoryActivity")
+                val intent = Intent(this@MainActivity, EmotionMemoryActivity::class.java)
+                startActivity(intent)
+            } catch (e: Exception) {
+                Log.e("EmotionGame", "Failed to start EmotionMemoryActivity", e)
+                Toast.makeText(this, "Unable to start game: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun updateCurrentDateDisplay() {
+        val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.getDefault())
+        binding.currentDateDisplay.text = dateFormat.format(selectedDate.time)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        getChildren()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -85,21 +119,27 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
         return true
     }
 
-
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.mi_logout -> {
                 auth.signOut()
                 finish()
-                return true
+                true
             }
-
             else -> super.onOptionsItemSelected(item)
         }
     }
 
     override fun onChildClick(id: String) {
-        val intent = Intent(this, RoutineListActivity::class.java)
+        val intent = Intent(this, RoutineListActivity::class.java).apply {
+            putExtra("endUser", id)  // Passing the child endUser ID to RoutineListActivity
+            putExtra("selectedDate", selectedDate.timeInMillis)
+        }
+        startActivity(intent)
+    }
+
+    override fun onEditClick(id: String) {
+        val intent = Intent(this, CreateChildActivity::class.java)
         intent.putExtra("endUser", id)
         startActivity(intent)
     }
@@ -107,7 +147,6 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
     override fun onDeleteClick(id: String) {
         removeEndUserFromParent(auth.currentUser!!.uid, id)
     }
-
 
     private fun removeEndUserFromParent(parentId: String, endUserId: String) {
         db.collection("parents").document(parentId).get()
@@ -131,24 +170,54 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
                         db.collection("parents").document(parentId)
                             .collection("children").document(endUserId)
                     )
+
+                    // Delete all daily routines for this end user
+                    db.collection("endUser")
+                        .document(endUserId)
+                        .collection("dailyRoutines")
+                        .get()
+                        .addOnSuccessListener { routines ->
+                            val routineBatch = db.batch()
+                            routines.forEach { routine ->
+                                routineBatch.delete(routine.reference)
+                            }
+                            routineBatch.commit()
+                        }
+
+                    // Delete routine templates created for this end user
+                    db.collection("routineTemplates")
+                        .whereEqualTo("endUserId", endUserId)
+                        .get()
+                        .addOnSuccessListener { templates ->
+                            val templateBatch = db.batch()
+                            templates.forEach { template ->
+                                templateBatch.delete(template.reference)
+                            }
+                            templateBatch.commit()
+                        }
+
+                }.addOnSuccessListener {
+                    getChildren() // Refresh the list after successful deletion
+                }.addOnFailureListener { e ->
+                    Snackbar.make(binding.root, "Error removing child: ${e.message}",
+                        Snackbar.LENGTH_SHORT).show()
                 }
             }
-        getChildren()
+            .addOnFailureListener { e ->
+                Snackbar.make(binding.root, "Error accessing parent data: ${e.message}",
+                    Snackbar.LENGTH_SHORT).show()
+            }
     }
 
-
     private fun getChildren() {
-        // First get the parent document to access their children list
         Log.w("TESTING", "parentId: ${auth.currentUser!!.uid}")
         db.collection("parents")
             .document(auth.currentUser!!.uid)
             .get()
             .addOnSuccessListener { parentDoc: DocumentSnapshot ->
-                // Get the list of child (endUser) IDs
                 val childrenIds = parentDoc.get("children") as? List<String>
                 Log.w("TESTING", "childIDs: $childrenIds")
                 if (!childrenIds.isNullOrEmpty()) {
-                    // Query endUsers collection for documents with matching IDs
                     db.collection("endUser")
                         .whereIn(FieldPath.documentId(), childrenIds)
                         .get()
@@ -157,9 +226,6 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
                             for (endUserDoc: QueryDocumentSnapshot in endUserResults) {
                                 val childFromDB: EndUser = endUserDoc.toObject(EndUser::class.java)
                                 childList.add(childFromDB)
-                                if (childList.isEmpty()) {
-                                    //TODO: CREATE AN EMPTY LIST VIEW
-                                }
                             }
                             childAdapter.notifyDataSetChanged()
                         }
@@ -168,6 +234,9 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
                             Snackbar.make(binding.root, "Error getting end users",
                                 Snackbar.LENGTH_SHORT).show()
                         }
+                } else {
+                    childList.clear()
+                    childAdapter.notifyDataSetChanged()
                 }
             }
             .addOnFailureListener { error ->
