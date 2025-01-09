@@ -19,7 +19,7 @@ class IconAdapter(
     class IconViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val iconContainer: CardView = view.findViewById(R.id.iconContainer)
         val iconImage: ImageView = view.findViewById(R.id.iconImage)
-        val iconName: TextView = view.findViewById(R.id.iconName)
+//        val iconName: TextView = view.findViewById(R.id.iconName)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): IconViewHolder {
@@ -31,12 +31,12 @@ class IconAdapter(
     override fun onBindViewHolder(holder: IconViewHolder, position: Int) {
         val icon = icons[position]
         holder.iconImage.setImageResource(icon.drawableResId)
-        holder.iconName.text = icon.name.lowercase().capitalize()
+//        holder.iconName.text = icon.name.lowercase().capitalize()
 
         // Highlight selected icon
         holder.iconContainer.setCardBackgroundColor(
             if (icon == selectedIcon)
-                holder.itemView.context.getColor(R.color.black)
+                holder.itemView.context.getColor(R.color.icon_background)
             else
                 holder.itemView.context.getColor(R.color.white)
         )

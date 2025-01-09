@@ -120,6 +120,7 @@
                 android:id="@+id/stepEditIcon"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
+                android:padding="2dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_edit"
                 android:scaleType="fitCenter" />

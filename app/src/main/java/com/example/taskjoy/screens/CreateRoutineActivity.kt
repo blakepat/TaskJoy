@@ -22,7 +22,7 @@ class CreateRoutineActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private var routineId: String? = null
     private var endUserId: String? = null
-    private var selectedIcon: TaskJoyIcon = TaskJoyIcon.CUSTOM
+    private var selectedIcon: TaskJoyIcon = TaskJoyIcon.MORNING
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

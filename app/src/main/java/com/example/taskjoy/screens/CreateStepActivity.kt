@@ -18,7 +18,7 @@ class CreateStepActivity : AppCompatActivity() {
     private var userId: String = "" // User ID
     private var routineId: String = "" // Routine ID
     private var stepId: String? = null // Step ID (null for create, non-null for edit)
-    private var selectedIcon: TaskJoyIcon = TaskJoyIcon.LUNCH // Default icon
+    private var selectedIcon: TaskJoyIcon = TaskJoyIcon.BRUSHTEETH // Default icon
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
