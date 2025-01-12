@@ -12,9 +12,11 @@ import com.example.taskjoy.model.CustomIcon
 import com.example.taskjoy.model.Step
 import com.example.taskjoy.model.TaskJoyIcon
 import com.example.taskjoy.CustomIconManager
+import com.example.taskjoy.model.DailyRoutine
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import com.google.firebase.storage.FirebaseStorage
 
 class CreateStepActivity : AppCompatActivity() {
@@ -90,7 +92,7 @@ class CreateStepActivity : AppCompatActivity() {
                     step?.let {
                         // Populate the fields
                         binding.etStepName.setText(it.name)
-                        binding.etStepNotes.setText(it.notes)
+                        binding.etStepNotes.setText(it.description)
 
                         // Handle both regular and custom icons
                         if (it.customIconPath != null) {
@@ -208,24 +210,37 @@ class CreateStepActivity : AppCompatActivity() {
     private fun updateExistingStep(name: String) {
         val stepRef = db.collection("steps").document(stepId!!)
 
-        val updates = mutableMapOf<String, Any?>(  // Changed to allow null values
+        val updates = mutableMapOf<String, Any?>(
             "name" to name,
-            "notes" to binding.etStepNotes.text.toString()
+            "description" to binding.etStepNotes.text.toString()
         )
 
-        // Handle icon updates
         if (selectedIcon == TaskJoyIcon.CUSTOM && selectedCustomIcon != null) {
             updates["customIconPath"] = selectedCustomIcon!!.filepath
             updates["image"] = TaskJoyIcon.CUSTOM.name
         } else {
-            updates["customIconPath"] = null as Any?  // Explicitly cast null as Any?
+            updates["customIconPath"] = null
             updates["image"] = selectedIcon.name
         }
 
         stepRef.update(updates)
             .addOnSuccessListener {
-                Toast.makeText(this, "Step updated successfully", Toast.LENGTH_SHORT).show()
-                finish()
+                // Update the dailySteps subcollection for the current routine
+                val dailyStepRef = db.collection("endUser")
+                    .document(userId)
+                    .collection("dailyRoutines")
+                    .document(routineId)
+                    .collection("dailySteps")
+                    .document(stepId!!)
+
+                dailyStepRef.update(updates)
+                    .addOnSuccessListener {
+                        Toast.makeText(this, "Step updated successfully.", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
+                    .addOnFailureListener { e ->
+                        Log.w("ERROR", "Error updating dailySteps: ${e.message}")
+                    }
             }
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Error updating step: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -238,7 +253,7 @@ class CreateStepActivity : AppCompatActivity() {
         val step = Step(
             name = name,
             image = selectedIcon.name,
-            notes = binding.etStepNotes.text.toString(),
+            description = binding.etStepNotes.text.toString(),
             completed = false,
             id = stepRef.id,
             customIconPath = if (selectedIcon == TaskJoyIcon.CUSTOM) selectedCustomIcon?.filepath else null
@@ -246,24 +261,58 @@ class CreateStepActivity : AppCompatActivity() {
 
         stepRef.set(step)
             .addOnSuccessListener {
-                // After creating the step, update both the routine template and daily routine
-                db.collection("endUser")
+                // Add to the dailySteps subcollection with a unique ID
+                val dailyStep = step.copy(
+                    notes = "", // Notes are specific to daily steps
+                    completed = false,
+                    completedAt = null,
+                    id = stepRef.id // Reuse step ID for simplicity
+                )
+
+                val dailyStepsRef = db.collection("endUser")
                     .document(userId)
                     .collection("dailyRoutines")
                     .document(routineId)
-                    .get()
-                    .addOnSuccessListener { routineDoc ->
-                        val templateId = routineDoc.getString("templateId")
-                        templateId?.let {
-                            // Update routine template first
-                            updateRoutineTemplate(it, stepRef.id)
+                    .collection("dailySteps")
 
-                            // Now update the dailyRoutine by adding the new step
-                            addStepToDailyRoutine(stepRef.id)
-                        } ?: Log.w("ERROR", "Template ID not found.")
+                dailyStepsRef.document(dailyStep.id).set(dailyStep)
+                    .addOnSuccessListener {
+                        // Update the routineTemplate with the reference to the new step
+                        db.collection("endUser")
+                            .document(userId)
+                            .collection("dailyRoutines")
+                            .document(routineId)
+                            .get()
+                            .addOnSuccessListener { dailyRoutineDoc ->
+                                val dailyRoutine = dailyRoutineDoc.toObject(DailyRoutine::class.java)
+                                if (dailyRoutine != null) {
+                                    db.collection("routineTemplates")
+                                        .document(dailyRoutine.templateId)
+                                        .update("steps", FieldValue.arrayUnion(stepRef.id))
+                                        .addOnSuccessListener {
+                                            Toast.makeText(this, "Step created and added to daily routine and template.", Toast.LENGTH_SHORT).show()
+                                            finish()
+                                        }
+                                        .addOnFailureListener { e ->
+                                            Log.w("ERROR", "Error updating routineTemplate: ${e.message}")
+                                            Toast.makeText(this, "Step created and added to daily routine, but failed to update template.", Toast.LENGTH_SHORT).show()
+                                            finish()
+                                        }
+                                } else {
+                                    Log.w("ERROR", "Failed to retrieve DailyRoutine document")
+                                    Toast.makeText(this, "Step created and added to daily routine, but failed to update template.", Toast.LENGTH_SHORT).show()
+                                    finish()
+                                }
+                            }
+                            .addOnFailureListener { e ->
+                                Log.w("ERROR", "Error getting DailyRoutine document: ${e.message}")
+                                Toast.makeText(this, "Step created and added to daily routine, but failed to update template.", Toast.LENGTH_SHORT).show()
+                                finish()
+                            }
                     }
                     .addOnFailureListener { e ->
-                        Log.w("ERROR", "Error retrieving dailyRoutine: ${e.message}")
+                        Log.w("ERROR", "Error adding step to dailySteps: ${e.message}")
+                        Toast.makeText(this, "Error adding step to daily routine.", Toast.LENGTH_SHORT).show()
                     }
             }
             .addOnFailureListener { e ->
@@ -272,21 +321,32 @@ class CreateStepActivity : AppCompatActivity() {
     }
 
     private fun addStepToDailyRoutine(stepId: String) {
-        db.collection("endUser")
+        val dailyRoutineRef = db.collection("endUser")
             .document(userId)
             .collection("dailyRoutines")
             .document(routineId)
-            .update("steps", FieldValue.arrayUnion(stepId))
+
+        // Add to dailyRoutine's steps array
+        dailyRoutineRef.update("steps", FieldValue.arrayUnion(stepId))
             .addOnSuccessListener {
-                Toast.makeText(this, "Step added to daily routine.", Toast.LENGTH_SHORT).show()
-                finish()
+                // Add step to dailySteps subcollection
+                dailyRoutineRef.collection("dailySteps")
+                    .document(stepId)
+                    .set(mapOf("stepId" to stepId, "completed" to false))
+                    .addOnSuccessListener {
+                        Toast.makeText(this, "Step added to daily routine and dailySteps.", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
+                    .addOnFailureListener { e ->
+                        Log.w("ERROR", "Error adding step to dailySteps: ${e.message}")
+                        Toast.makeText(this, "Error updating dailySteps: ${e.message}", Toast.LENGTH_SHORT).show()
+                    }
             }
             .addOnFailureListener { e ->
                 Log.w("ERROR", "Error updating daily routine: ${e.message}")
                 Toast.makeText(this, "Error updating daily routine: ${e.message}", Toast.LENGTH_SHORT).show()
             }
     }
-
     private fun updateRoutineTemplate(templateId: String, stepId: String) {
         db.collection("routineTemplates")
             .document(templateId)

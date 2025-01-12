@@ -32,7 +32,7 @@ class StepAdapter(
 
         with(holder.binding) {
             stepName.text = currItem.name
-            stepNotes.text = currItem.notes
+            stepNotes.text = currItem.description
 
             // Safely handle icon loading
             try {

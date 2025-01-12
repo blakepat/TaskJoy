@@ -19,6 +19,8 @@ class StepDetailsActivity : AppCompatActivity() {
     private lateinit var binding: ActivityStepDetailsBinding
     private val db = Firebase.firestore
     private lateinit var step: Step
+    private var endUserId: String? = null
+    private var routineId: String = ""
 
     private var currentPosition: Int = 0
     private lateinit var stepIds: ArrayList<String>
@@ -31,6 +33,8 @@ class StepDetailsActivity : AppCompatActivity() {
         val stepId = intent.getStringExtra("stepId")
         currentPosition = intent.getIntExtra("currentPosition", 0)
         stepIds = intent.getStringArrayListExtra("stepIds") ?: arrayListOf()
+        endUserId = intent.getStringExtra("endUser")
+        routineId = intent.getStringExtra("routineId") ?: ""
 
         setupClickListeners()
         getStep(stepId ?: "")
@@ -91,36 +95,59 @@ class StepDetailsActivity : AppCompatActivity() {
     }
 
     private fun completeAllSteps() {
-        val batch = db.batch()
-        val currentTime = Timestamp.now()
-
-        stepIds.forEach { stepId ->
-            val stepRef = db.collection("steps").document(stepId)
-            batch.update(stepRef, mapOf(
-                "completed" to true,
-                "completedAt" to currentTime
-            ))
+        if (endUserId == null || routineId.isEmpty()) {
+            Log.e("StepDetailsActivity", "Cannot complete steps: missing required data")
+            return
         }
 
-        batch.commit()
-            .addOnSuccessListener {
-                Snackbar.make(binding.root, "Routine completed!", Snackbar.LENGTH_SHORT).show()
-                step.completed = true
-                step.completedAt = currentTime
-                updateCompletionStatus()
+        val dailyStepsRef = db.collection("endUser")
+            .document(endUserId!!)
+            .collection("dailyRoutines")
+            .document(routineId)
+            .collection("dailySteps")
 
-                binding.root.postDelayed({
-                    finish()
-                }, 1500)
+        dailyStepsRef.get()
+            .addOnSuccessListener { stepsSnapshot ->
+                val batch = db.batch()
+                val currentTime = Timestamp.now()
+
+                stepsSnapshot.documents.forEach { stepDoc ->
+                    batch.update(stepDoc.reference, mapOf(
+                        "completed" to true,
+                        "completedAt" to currentTime
+                    ))
+                }
+
+                batch.commit()
+                    .addOnSuccessListener {
+                        Snackbar.make(binding.root, "Routine completed!", Snackbar.LENGTH_SHORT).show()
+                        step.completed = true
+                        step.completedAt = currentTime
+                        updateCompletionStatus()
+
+                        binding.root.postDelayed({
+                            finish()
+                        }, 1500)
+                    }
+                    .addOnFailureListener { error ->
+                        Log.e("StepDetailsActivity", "Error completing steps", error)
+                        Snackbar.make(binding.root, "Error completing routine", Snackbar.LENGTH_SHORT).show()
+                    }
             }
             .addOnFailureListener { error ->
-                Log.e("StepDetailsActivity", "Error completing steps", error)
+                Log.e("StepDetailsActivity", "Error fetching steps to complete", error)
                 Snackbar.make(binding.root, "Error completing routine", Snackbar.LENGTH_SHORT).show()
             }
     }
 
     private fun markStepAsComplete(onSuccess: (() -> Unit)? = null) {
-        val stepRef = db.collection("steps").document(step.id)
+        val stepRef = db.collection("endUser")
+            .document(endUserId!!)
+            .collection("dailyRoutines")
+            .document(routineId)
+            .collection("dailySteps")
+            .document(step.id)
+
         val currentTime = Timestamp.now()
 
         stepRef.update(mapOf(
@@ -140,7 +167,12 @@ class StepDetailsActivity : AppCompatActivity() {
     }
 
     private fun markStepAsIncomplete() {
-        val stepRef = db.collection("steps").document(step.id)
+        val stepRef = db.collection("endUser")
+            .document(endUserId!!)
+            .collection("dailyRoutines")
+            .document(routineId)
+            .collection("dailySteps")
+            .document(step.id)
 
         stepRef.update(mapOf(
             "completed" to false,
@@ -159,7 +191,12 @@ class StepDetailsActivity : AppCompatActivity() {
 
     private fun saveNotes() {
         val newNotes = binding.notesEditText.text.toString()
-        val stepRef = db.collection("steps").document(step.id)
+        val stepRef = db.collection("endUser")
+            .document(endUserId!!)
+            .collection("dailyRoutines")
+            .document(routineId)
+            .collection("dailySteps")
+            .document(step.id)
 
         stepRef.update("notes", newNotes)
             .addOnSuccessListener {
@@ -173,9 +210,14 @@ class StepDetailsActivity : AppCompatActivity() {
     }
 
     private fun getStep(stepId: String) {
-        db.collection("steps")
+        val stepRef = db.collection("endUser")
+            .document(endUserId!!)
+            .collection("dailyRoutines")
+            .document(routineId)
+            .collection("dailySteps")
             .document(stepId)
-            .get()
+
+        stepRef.get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
                     val stepFromDB: Step = document.toObject(Step::class.java)!!
@@ -196,6 +238,8 @@ class StepDetailsActivity : AppCompatActivity() {
 
     private fun setupUI() {
         binding.textStepTitle.text = step.name
+        binding.stepDescriptionText.text = step.description
+        binding.notesEditText.setText(step.notes)
 
         // Safely handle icon loading
         try {
@@ -221,7 +265,5 @@ class StepDetailsActivity : AppCompatActivity() {
             binding.stepImage.setImageResource(R.drawable.ic_brush_teeth)
             Log.e("StepDetailsActivity", "Error setting step icon", e)
         }
-
-        binding.notesEditText.setText(step.notes)
     }
 }

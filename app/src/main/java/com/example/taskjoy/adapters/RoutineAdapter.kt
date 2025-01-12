@@ -31,7 +31,7 @@ class RoutineAdapter(
 
         fun bind(routine: DailyRoutine) {
             name.text = routine.name
-            stepQuantity.text = "${routine.steps.size} steps"
+//            stepQuantity.text = "${routine.steps.size} steps"
             icon.setImageResource(TaskJoyIcon.fromString(routine.image).getDrawableResource())
 
             // Handle edit icon visibility based on edit mode

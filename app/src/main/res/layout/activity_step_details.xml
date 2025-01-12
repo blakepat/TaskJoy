@@ -39,62 +39,69 @@
 
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Completion Status Card -->
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/completionStatusContainer"
-                android:layout_width="wrap_content"
+            <!-- Completion Status and Reset Button Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="@color/accent_green"
-                android:visibility="gone">
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginBottom="16dp">
 
-                <LinearLayout
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/completionStatusContainer"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="12dp"
-                    android:gravity="center">
+                    android:layout_marginEnd="8dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/accent_green"
+                    android:visibility="gone">
 
-                    <ImageView
-                        android:id="@+id/completionIcon"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_checkmark"
-                        android:layout_marginEnd="8dp"
-                        app:tint="@color/card_background_white"/>
-
-                    <TextView
-                        android:id="@+id/completionText"
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Completed"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/card_background_white"/>
-                </LinearLayout>
+                        android:orientation="horizontal"
+                        android:padding="12dp"
+                        android:gravity="center">
 
-            </com.google.android.material.card.MaterialCardView>
+                        <ImageView
+                            android:id="@+id/completionIcon"
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@drawable/ic_checkmark"
+                            android:layout_marginEnd="8dp"
+                            app:tint="@color/card_background_white"/>
 
-            <!-- Reset Button -->
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnResetCompletion"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:text="Mark as Incomplete"
-                android:layout_marginTop="8dp"
-                app:cornerRadius="12dp"
-                android:textAllCaps="false"
-                android:visibility="gone"
-                app:backgroundTint="@color/playful_pink"/>
+                        <TextView
+                            android:id="@+id/completionText"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Completed"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/card_background_white"/>
+                    </LinearLayout>
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnResetCompletion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Mark as Incomplete"
+                    app:cornerRadius="12dp"
+                    android:textAllCaps="false"
+                    android:visibility="gone"
+                    app:backgroundTint="@color/playful_pink"/>
+
+            </LinearLayout>
 
             <!-- Step Image Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="240dp"
                 android:layout_height="240dp"
-                android:layout_marginVertical="24dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="16dp"
                 app:cardCornerRadius="120dp"
                 app:cardElevation="8dp"
                 android:layout_gravity="center"
@@ -110,12 +117,47 @@
 
             </com.google.android.material.card.MaterialCardView>
 
+            <!-- Description Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginVertical="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp"
+                app:cardBackgroundColor="@color/card_background_white">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="How to complete this task:"
+                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"/>
+
+                    <TextView
+                        android:id="@+id/stepDescriptionText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary"/>
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Notes Section -->
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/notesInputLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginVertical="16dp"
+                android:layout_marginVertical="12dp"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 app:boxCornerRadiusTopStart="12dp"
                 app:boxCornerRadiusTopEnd="12dp"
@@ -126,7 +168,6 @@
                     android:id="@+id/notesEditText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Notes"
                     android:inputType="textMultiLine"
                     android:minLines="3"
                     android:gravity="top|start"/>
@@ -142,7 +183,7 @@
                 android:text="Save Notes"
                 android:textAllCaps="false"
                 app:cornerRadius="12dp"
-                android:layout_marginBottom="80dp"
+                android:layout_marginBottom="72dp"
                 app:backgroundTint="@color/accent_green"/>
 
         </LinearLayout>

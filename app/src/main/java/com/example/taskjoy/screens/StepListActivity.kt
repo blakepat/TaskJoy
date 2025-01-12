@@ -7,33 +7,25 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.taskjoy.R
-import com.example.taskjoy.databinding.StepListScreenBinding
-import com.example.taskjoy.model.Routine
-import com.example.taskjoy.model.Step
 import com.example.taskjoy.adapters.StepAdapter
 import com.example.taskjoy.adapters.StepClickListener
+import com.example.taskjoy.databinding.StepListScreenBinding
 import com.example.taskjoy.model.DailyRoutine
-import com.example.taskjoy.model.RoutineTemplate
+import com.example.taskjoy.model.Step
 import com.google.android.material.snackbar.Snackbar
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.QueryDocumentSnapshot
-import com.google.firebase.firestore.QuerySnapshot
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
-import com.google.firebase.firestore.FieldPath
 
 class StepListActivity : AppCompatActivity(), StepClickListener {
 
     private lateinit var binding: StepListScreenBinding
     private lateinit var stepAdapter: StepAdapter
-    private var db = Firebase.firestore
+    private val db = Firebase.firestore
     private var routineId: String = ""
     private var isEditMode = false
     private var stepList: MutableList<Step> = mutableListOf()
-    private var isDaily: Boolean = false
     private var endUserId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,37 +33,26 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
         binding = StepListScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Retrieve routineId, isDaily, and endUserId from the intent
+        // Retrieve intent data
         routineId = intent.getStringExtra("routineId").toString()
-        isDaily = intent.getBooleanExtra("isDaily", false)
-        endUserId = intent.getStringExtra("endUser") // Ensure this is not null or empty
-
-        // Debugging the endUserId to make sure it is properly received
-        Log.w("StepListActivity", "End User ID in StepListActivity: $endUserId")
+        endUserId = intent.getStringExtra("endUser")
 
         if (endUserId.isNullOrEmpty()) {
-            Log.w("StepListActivity", "Error: endUserId is null or empty.")
+            Log.e("StepListActivity", "Error: endUserId is missing")
             Snackbar.make(binding.root, "Error: Missing User ID", Snackbar.LENGTH_SHORT).show()
-            finish() // Close the activity if missing
+            finish()
             return
-        } else {
-
         }
 
         setupRecyclerView()
+        setupFab()
 
-        binding.fabAddStep.setOnClickListener {
-            val intent = Intent(this, CreateStepActivity::class.java).apply {
-                putExtra("userId", endUserId)  // Pass the userId (endUserId)
-                putExtra("routineId", routineId)  // Pass the routineId
-            }
-            startActivity(intent)
-        }
+        // Fetch routine and steps
+        getRoutineWithSteps(routineId)
     }
 
     override fun onResume() {
         super.onResume()
-        Log.w("StepListActivity", "Fetching routine with ID: $routineId for User: $endUserId")
         getRoutineWithSteps(routineId)
     }
 
@@ -80,7 +61,16 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
         binding.recyclerViewSteps.apply {
             adapter = stepAdapter
             layoutManager = LinearLayoutManager(this@StepListActivity)
-//            addItemDecoration(DividerItemDecoration(this@StepListActivity, DividerItemDecoration.VERTICAL))
+        }
+    }
+
+    private fun setupFab() {
+        binding.fabAddStep.setOnClickListener {
+            val intent = Intent(this, CreateStepActivity::class.java).apply {
+                putExtra("userId", endUserId)
+                putExtra("routineId", routineId)
+            }
+            startActivity(intent)
         }
     }
 
@@ -109,79 +99,54 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
             putExtra("stepId", step.id)
             putExtra("currentPosition", currentPosition)
             putStringArrayListExtra("stepIds", ArrayList(stepIds))
+            putExtra("endUser", endUserId)
+            putExtra("routineId", routineId)
         }
         startActivity(intent)
     }
 
     override fun onEditClick(step: Step) {
-        val intent = Intent(this, CreateStepActivity::class.java)
-        intent.putExtra("userId", endUserId)  // Pass the userId (endUserId)
-        intent.putExtra("routineId", routineId)
-        intent.putExtra("stepId", step.id)
+        val intent = Intent(this, CreateStepActivity::class.java).apply {
+            putExtra("userId", endUserId)
+            putExtra("routineId", routineId)
+            putExtra("stepId", step.id)
+        }
         startActivity(intent)
     }
 
     @SuppressLint("NotifyDataSetChanged")
     private fun getRoutineWithSteps(routineId: String) {
-        val collection = if (isDaily) {
-            db.collection("endUser").document(endUserId!!).collection("dailyRoutines")
-        } else {
-            db.collection("routineTemplates")
-        }
-
-        collection.document(routineId)
+        db.collection("endUser").document(endUserId!!).collection("dailyRoutines")
+            .document(routineId)
             .get()
-            .addOnSuccessListener { routineDoc: DocumentSnapshot ->
-                Log.w("StepListActivity", "Routine document fetched: $routineDoc")
-                val routine = if (isDaily) {
-                    routineDoc.toObject(DailyRoutine::class.java)
-                } else {
-                    routineDoc.toObject(RoutineTemplate::class.java)
-                }
+            .addOnSuccessListener { routineDoc ->
+                Log.d("StepListActivity", "Routine document fetched: ${routineDoc.data}")
+                val routine = routineDoc.toObject(DailyRoutine::class.java)
+                val routineName = routine?.name ?: "Unknown Routine"
 
-                if (routine != null) {
-                    Log.w("StepListActivity", "Routine fetched: $routine")
-                } else {
-                    Log.w("StepListActivity", "Routine is null!")
-                }
+                // Set the title of the action bar
+                supportActionBar?.title = routineName
 
-                val routineName = if (isDaily) {
-                    (routine as? DailyRoutine)?.name
-                } else {
-                    (routine as? RoutineTemplate)?.name
-                }
-                supportActionBar?.title = routineName ?: "Steps"
-
-                val steps = if (isDaily) {
-                    (routine as? DailyRoutine)?.steps
-                } else {
-                    (routine as? RoutineTemplate)?.steps
-                }
-
-                if (!steps.isNullOrEmpty()) {
-                    stepList.clear()
-
-                    db.collection("steps")
-                        .whereIn(FieldPath.documentId(), steps)
-                        .get()
-                        .addOnSuccessListener { results: QuerySnapshot ->
-                            Log.w("StepListActivity", "Steps fetched: ${results.size()} steps")
-                            for (document: QueryDocumentSnapshot in results) {
-                                val stepFromDB: Step = document.toObject(Step::class.java)
-                                stepList.add(stepFromDB)
-                            }
-                            stepAdapter.notifyDataSetChanged()
+                // Fetch steps from the dailySteps subcollection
+                db.collection("endUser").document(endUserId!!).collection("dailyRoutines")
+                    .document(routineId).collection("dailySteps")
+                    .get()
+                    .addOnSuccessListener { stepDocs ->
+                        Log.d("StepListActivity", "Steps fetched: ${stepDocs.size()} steps")
+                        stepList.clear()
+                        for (stepDoc in stepDocs) {
+                            val step = stepDoc.toObject(Step::class.java)
+                            stepList.add(step)
                         }
-                        .addOnFailureListener { error ->
-                            Snackbar.make(binding.root, "Error getting steps $error", Snackbar.LENGTH_SHORT).show()
-                            Log.e("StepListActivity", "Error getting steps", error)
-                        }
-                } else {
-                    Log.w("StepListActivity", "No steps found in routine.")
-                }
+                        stepAdapter.notifyDataSetChanged()
+                    }
+                    .addOnFailureListener { error ->
+                        Snackbar.make(binding.root, "Error getting steps: $error", Snackbar.LENGTH_SHORT).show()
+                        Log.e("StepListActivity", "Error getting steps", error)
+                    }
             }
             .addOnFailureListener { error ->
-                Snackbar.make(binding.root, "Error getting routine $error", Snackbar.LENGTH_SHORT).show()
+                Snackbar.make(binding.root, "Error getting routine: $error", Snackbar.LENGTH_SHORT).show()
                 Log.e("StepListActivity", "Error getting routine", error)
             }
     }

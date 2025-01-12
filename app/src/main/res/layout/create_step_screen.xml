@@ -104,7 +104,7 @@
                             android:id="@+id/etStepNotes"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:hint="Notes (Optional)"
+                            android:hint="Enter step description (how to complete this task)"
                             android:minLines="3"
                             android:maxLines="5"
                             android:gravity="top"
