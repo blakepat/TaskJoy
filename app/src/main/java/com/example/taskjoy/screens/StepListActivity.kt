@@ -8,16 +8,19 @@ import android.view.Menu
 import android.view.MenuItem
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.taskjoy.R
 import com.example.taskjoy.adapters.StepAdapter
 import com.example.taskjoy.adapters.StepClickListener
+import com.example.taskjoy.adapters.StepItemTouchHelperCallback
 import com.example.taskjoy.databinding.StepListScreenBinding
 import com.example.taskjoy.model.DailyRoutine
 import com.example.taskjoy.model.RoutineTemplate
 import com.example.taskjoy.model.Step
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 
@@ -65,6 +68,12 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
             adapter = stepAdapter
             layoutManager = LinearLayoutManager(this@StepListActivity)
         }
+
+        // Setup ItemTouchHelper for drag and drop
+        val callback = StepItemTouchHelperCallback(stepAdapter)
+        val touchHelper = ItemTouchHelper(callback)
+        touchHelper.attachToRecyclerView(binding.recyclerViewSteps)
+        stepAdapter.setItemTouchHelper(touchHelper)
     }
 
     private fun setupFab() {
@@ -85,12 +94,68 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_toggle_edit -> {
+                if (isEditMode) {
+                    // Exiting edit mode, save the order
+                    saveStepOrder()
+                }
                 isEditMode = !isEditMode
                 item.setIcon(if (isEditMode) R.drawable.ic_checkmark else R.drawable.ic_edit)
                 stepAdapter.setEditMode(isEditMode)
                 true
             }
             else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun saveStepOrder() {
+        val dailyRoutineRef = db.collection("endUser")
+            .document(endUserId!!)
+            .collection("dailyRoutines")
+            .document(routineId)
+
+        db.runTransaction { transaction ->
+            // 1. Get the daily routine to fetch the template ID
+            val dailyRoutineDoc = transaction.get(dailyRoutineRef)
+            if (!dailyRoutineDoc.exists()) {
+                throw FirebaseFirestoreException(
+                    "Daily routine document not found",
+                    FirebaseFirestoreException.Code.NOT_FOUND
+                )
+            }
+
+            val dailyRoutine = dailyRoutineDoc.toObject(DailyRoutine::class.java)
+            val templateId = dailyRoutine?.templateId
+
+            if (!templateId.isNullOrEmpty()) {
+                // 2. Get and update template steps order
+                val templateRef = db.collection("routineTemplates").document(templateId)
+                val templateDoc = transaction.get(templateRef)
+
+                if (templateDoc.exists()) {
+                    val orderedTemplateStepIds = stepList
+                        .filter { it.templateStepId.isNotEmpty() }
+                        .map { it.templateStepId }
+                    transaction.update(templateRef, "steps", orderedTemplateStepIds)
+                }
+            }
+
+            // 3. Update order in dailySteps subcollection
+            stepList.forEachIndexed { index, step ->
+                val stepRef = dailyRoutineRef
+                    .collection("dailySteps")
+                    .document(step.id)
+                transaction.update(stepRef, "order", index)
+            }
+        }.addOnSuccessListener {
+            Log.d("StepListActivity", "Successfully saved step order")
+            Snackbar.make(binding.root, "Order saved successfully", Snackbar.LENGTH_SHORT).show()
+        }.addOnFailureListener { error ->
+            Log.e("StepListActivity", "Error saving step order", error)
+            Snackbar.make(
+                binding.root,
+                "Error saving order: ${error.localizedMessage}",
+                Snackbar.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -127,12 +192,12 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
                 val routine = routineDoc.toObject(DailyRoutine::class.java)
                 val routineName = routine?.name ?: "Unknown Routine"
 
-                // Set the title of the action bar
                 supportActionBar?.title = routineName
 
-                // Fetch steps from the dailySteps subcollection
+                // Fetch and sort steps by order
                 db.collection("endUser").document(endUserId!!).collection("dailyRoutines")
                     .document(routineId).collection("dailySteps")
+                    .orderBy("order", Query.Direction.ASCENDING)
                     .get()
                     .addOnSuccessListener { stepDocs ->
                         Log.d("StepListActivity", "Steps fetched: ${stepDocs.size()} steps")
@@ -154,9 +219,13 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
             }
     }
 
+    override fun onStepOrderChanged(steps: List<Step>) {
+        // This is called by the adapter when steps are reordered
+        // We don't need to do anything here as the order will be saved when edit mode is exited
+        Log.d("StepListActivity", "Step order changed - will be saved on edit mode exit")
+    }
 
     override fun onDeleteClick(step: Step) {
-        // Show confirmation dialog before deletion
         AlertDialog.Builder(this)
             .setTitle("Delete Step")
             .setMessage("Are you sure you want to delete this step?")
@@ -170,7 +239,6 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
     private fun deleteStep(step: Step) {
         Log.d("StepListActivity", "Starting deletion for step: ${step.id}, templateStepId: ${step.templateStepId}")
 
-        // Define document references
         val dailyStepRef = db.collection("endUser")
             .document(endUserId!!)
             .collection("dailyRoutines")
@@ -190,6 +258,8 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
             dailyStepRef.delete()
                 .addOnSuccessListener {
                     stepList.remove(step)
+                    // Reorder remaining steps
+                    updateRemainingStepsOrder()
                     stepAdapter.notifyDataSetChanged()
                     Snackbar.make(binding.root, "Step deleted successfully", Snackbar.LENGTH_SHORT).show()
                 }
@@ -201,7 +271,7 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
         }
 
         db.runTransaction { transaction ->
-            // 1. READ the daily routine document to get the template ID
+            // Handle template step deletion
             val dailyRoutineDoc = transaction.get(dailyRoutineRef)
             if (!dailyRoutineDoc.exists()) {
                 throw FirebaseFirestoreException(
@@ -220,9 +290,6 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
                 )
             }
 
-            Log.d("StepListActivity", "Found templateId: $templateId")
-
-            // 2. READ the template document using the correct template ID
             val templateRef = db.collection("routineTemplates").document(templateId)
             val templateDoc = transaction.get(templateRef)
 
@@ -233,24 +300,21 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
                 )
             }
 
-            // 3. Get and update the steps array
             val template = templateDoc.toObject(RoutineTemplate::class.java)
-            Log.d("StepListActivity", "Current template steps: ${template?.steps}")
-
             val updatedSteps = template?.steps?.toMutableList() ?: mutableListOf()
             updatedSteps.remove(templateStepId)
-            Log.d("StepListActivity", "Updated steps array: $updatedSteps")
 
-            // 4. Define step template reference
             val stepTemplateRef = db.collection("steps").document(templateStepId)
 
-            // 5. Perform all writes
             transaction.update(templateRef, "steps", updatedSteps)
             transaction.delete(dailyStepRef)
             transaction.delete(stepTemplateRef)
+
         }.addOnSuccessListener {
             Log.d("StepListActivity", "Transaction completed successfully")
             stepList.remove(step)
+            // Reorder remaining steps
+            updateRemainingStepsOrder()
             stepAdapter.notifyDataSetChanged()
             Snackbar.make(binding.root, "Step deleted successfully", Snackbar.LENGTH_SHORT).show()
         }.addOnFailureListener { error ->
@@ -260,6 +324,19 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
                 "Error deleting step: ${error.localizedMessage}",
                 Snackbar.LENGTH_LONG
             ).show()
+        }
+    }
+
+    private fun updateRemainingStepsOrder() {
+        // Update order of remaining steps after deletion
+        stepList.forEachIndexed { index, step ->
+            db.collection("endUser")
+                .document(endUserId!!)
+                .collection("dailyRoutines")
+                .document(routineId)
+                .collection("dailySteps")
+                .document(step.id)
+                .update("order", index)
         }
     }
 }

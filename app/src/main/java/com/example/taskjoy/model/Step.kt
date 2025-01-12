@@ -11,6 +11,7 @@ data class Step(
     var completedAt: Timestamp? = null,
     var notes: String = "",      // Daily specific notes
     val customIconPath: String? = null,
+    var order: Int = 0,
     @DocumentId
     val id: String = "",
     val templateStepId: String = "" // Reference to original template step

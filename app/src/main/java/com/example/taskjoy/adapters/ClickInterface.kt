@@ -14,6 +14,7 @@ interface StepClickListener {
     fun onStepClick(step: Step)
     fun onEditClick(step: Step)
     fun onDeleteClick(step: Step)
+    fun onStepOrderChanged(steps: List<Step>)
 }
 
 interface ChildClickListener {
