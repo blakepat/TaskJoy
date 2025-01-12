@@ -1,5 +1,6 @@
 package com.example.taskjoy.screens
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -50,6 +51,31 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
         setupCalendar()
         setupClickListeners()
         updateCurrentDateDisplay()
+
+
+        // Check if app was closed in child lock mode
+        val prefs = getSharedPreferences("TaskJoyPrefs", Context.MODE_PRIVATE)
+        val wasChildLocked = prefs.getBoolean("closedInChildLock", false)
+
+        if (wasChildLocked) {
+            // Clear the flag
+            prefs.edit().putBoolean("closedInChildLock", false).apply()
+            prefs.edit().putBoolean("childLockEnabled", false).apply()
+
+            // Force logout
+            Firebase.auth.signOut()
+
+            // Show message
+            Toast.makeText(this, "Session expired. Please log in again.", Toast.LENGTH_LONG).show()
+
+            // Navigate to login screen
+            // Replace with your login activity
+            val intent = Intent(this, LoginActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
+            finish()
+        }
+
     }
 
     private fun setupRecyclerView() {
