@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.taskjoy.R
@@ -24,6 +25,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.tasks.await
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -302,6 +304,116 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
                 Snackbar.make(binding.root,
                     "Error getting parent data: ${error.message}",
                     Snackbar.LENGTH_SHORT).show()
+            }
+    }
+
+
+    override fun onDeleteClick(routine: DailyRoutine) {
+        // Show confirmation dialog before deletion
+        AlertDialog.Builder(this)
+            .setTitle("Delete Routine")
+            .setMessage("Are you sure you want to delete this routine?")
+            .setPositiveButton("Delete") { _, _ ->
+                deleteRoutine(routine)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun deleteRoutine(routine: DailyRoutine) {
+        Log.d("RoutineListActivity", "Starting deletion for routine: ${routine.id}, templateId: ${routine.templateId}")
+
+        // Reference to all needed documents
+        val dailyRoutineRef = db.collection("endUser")
+            .document(endUserId!!)
+            .collection("dailyRoutines")
+            .document(routine.id)
+
+        val routineTemplateRef = db.collection("routineTemplates")
+            .document(routine.templateId)
+
+        // First get all the dailySteps
+        dailyRoutineRef.collection("dailySteps")
+            .get()
+            .addOnSuccessListener { dailyStepsSnapshot ->
+                // Now start the transaction with the dailySteps data
+                db.runTransaction { transaction ->
+                    // 1. READS FIRST
+                    // Get endUser document
+                    val endUserRef = db.collection("endUser").document(endUserId!!)
+                    val endUserDoc = transaction.get(endUserRef)
+
+                    // Get routine template to check its steps
+                    val templateDoc = transaction.get(routineTemplateRef)
+
+                    // 2. PROCESS DATA
+                    // Update templateIds array
+                    val templateIds = if (endUserDoc.exists()) {
+                        (endUserDoc.get("routineTemplates") as? MutableList<String> ?: mutableListOf()).apply {
+                            remove(routine.templateId)
+                        }
+                    } else {
+                        mutableListOf()
+                    }
+
+                    // Get template steps to delete
+                    val templateSteps = if (templateDoc.exists()) {
+                        val template = templateDoc.toObject(RoutineTemplate::class.java)
+                        template?.steps ?: listOf()
+                    } else {
+                        listOf()
+                    }
+
+                    // 3. WRITES SECOND
+                    // Delete all dailySteps
+                    dailyStepsSnapshot.documents.forEach { stepDoc ->
+                        val stepRef = dailyRoutineRef.collection("dailySteps").document(stepDoc.id)
+                        transaction.delete(stepRef)
+                    }
+
+                    // Delete all template steps
+                    templateSteps.forEach { stepId ->
+                        val stepRef = db.collection("steps").document(stepId)
+                        transaction.delete(stepRef)
+                    }
+
+                    // Delete the daily routine document
+                    transaction.delete(dailyRoutineRef)
+
+                    // Delete the routine template
+                    transaction.delete(routineTemplateRef)
+
+                    // Update the endUser document if it exists
+                    if (endUserDoc.exists()) {
+                        transaction.update(endUserRef, "routineTemplates", templateIds)
+                    }
+                }.addOnSuccessListener {
+                    Log.d("RoutineListActivity", "Successfully deleted routine and all related documents")
+                    routineList.remove(routine)
+                    routineAdapter.notifyDataSetChanged()
+
+                    if (routineList.isEmpty()) {
+                        binding.recyclerViewRoutines.visibility = View.GONE
+                        binding.emptyState.root.visibility = View.VISIBLE
+                    }
+
+                    Snackbar.make(binding.root, "Routine deleted successfully", Snackbar.LENGTH_SHORT).show()
+                }.addOnFailureListener { error ->
+                    Log.e("RoutineListActivity", "Error in deletion transaction", error)
+                    Snackbar.make(
+                        binding.root,
+                        "Error deleting routine: ${error.localizedMessage}",
+                        Snackbar.LENGTH_LONG
+                    ).show()
+                }
+            }
+            .addOnFailureListener { error ->
+                Log.e("RoutineListActivity", "Error getting dailySteps", error)
+                Snackbar.make(
+                    binding.root,
+                    "Error getting dailySteps: ${error.localizedMessage}",
+                    Snackbar.LENGTH_LONG
+                ).show()
             }
     }
 

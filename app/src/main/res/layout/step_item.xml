@@ -101,6 +101,23 @@
         </FrameLayout>
 
         <FrameLayout
+            android:id="@+id/deleteIconContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:padding="8dp"
+            app:layout_constraintRight_toLeftOf="@id/edit_icon_container"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <ImageView
+                android:id="@+id/deleteIcon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_delete" />
+        </FrameLayout>
+
+        <FrameLayout
             android:id="@+id/edit_icon_container"
             android:layout_width="32dp"
             android:layout_height="32dp"

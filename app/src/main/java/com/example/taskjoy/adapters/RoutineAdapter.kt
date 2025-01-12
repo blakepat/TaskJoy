@@ -26,6 +26,7 @@ class RoutineAdapter(
         private val name: TextView = itemView.findViewById(R.id.routine_name)
         private val stepQuantity: TextView = itemView.findViewById(R.id.routine_step_quantity)
         private val editIconContainer: View = itemView.findViewById(R.id.edit_icon_container)
+        private val deleteIconContainer: View = itemView.findViewById(R.id.delete_icon_container)
         private val completionIndicatorContainer: View = itemView.findViewById(R.id.completion_indicator_container)
         private val notes: TextView = itemView.findViewById(R.id.routine_notes)
 
@@ -50,6 +51,13 @@ class RoutineAdapter(
                 notes.text = routine.notes
             } else {
                 notes.visibility = View.GONE
+            }
+
+            deleteIconContainer.visibility = if (isEditMode) View.VISIBLE else View.GONE
+
+            // Set click listeners
+            deleteIconContainer.setOnClickListener {
+                listener.onDeleteClick(routine)
             }
 
             // Set click listeners

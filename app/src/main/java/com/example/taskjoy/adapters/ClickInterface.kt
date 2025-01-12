@@ -7,11 +7,13 @@ import com.example.taskjoy.model.Step
 interface RoutineClickListener {
     fun onRoutineClick(routine: DailyRoutine)
     fun onEditClick(routine: DailyRoutine)
+    fun onDeleteClick(routine: DailyRoutine)
 }
 
 interface StepClickListener {
     fun onStepClick(step: Step)
     fun onEditClick(step: Step)
+    fun onDeleteClick(step: Step)
 }
 
 interface ChildClickListener {

@@ -37,7 +37,7 @@ class StepAdapter(
             // Safely handle icon loading
             try {
                 if (currItem.image == TaskJoyIcon.CUSTOM.name && currItem.customIconPath != null) {
-                    // Load custom icon using Glide
+                    // Load custom icon using Glideb
                     Glide.with(root.context)
                         .load(File(currItem.customIconPath))
                         .centerCrop()
@@ -65,6 +65,12 @@ class StepAdapter(
                 View.VISIBLE
             } else {
                 View.GONE
+            }
+
+            deleteIconContainer.visibility = if (isEditMode) View.VISIBLE else View.GONE
+
+            deleteIconContainer.setOnClickListener {
+                listener.onDeleteClick(currItem)
             }
 
             root.setOnClickListener {
