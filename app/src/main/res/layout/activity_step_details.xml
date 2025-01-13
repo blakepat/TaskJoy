@@ -195,32 +195,51 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp"
-        android:layout_gravity="bottom">
+        android:padding="12dp"
+        android:layout_gravity="bottom"
+        android:gravity="center">
 
         <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
             android:id="@+id/btnPrevStep"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            android:text="Previous"
+            android:layout_marginEnd="6dp"
+            android:text="Back"
+            android:textSize="12sp"
             android:textColor="@color/text_primary"
             app:icon="@drawable/ic_back"
+            app:iconSize="20dp"
             app:iconTint="@color/text_primary"
             app:backgroundTint="@color/secondary_yellow"/>
 
         <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
             android:id="@+id/btnNextStep"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="8dp"
-            android:text="Complete"
+            android:layout_weight="1.2"
+            android:layout_marginHorizontal="6dp"
+            android:textSize="12sp"
             android:textColor="@color/card_background_white"
+            android:text="Complete"
             app:icon="@drawable/ic_checkmark"
+            app:iconSize="20dp"
             app:iconTint="@color/card_background_white"
             app:backgroundTint="@color/accent_green"/>
+
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/btnSkipStep"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:text="Skip"
+            android:textSize="12sp"
+            android:textColor="@color/text_primary"
+            app:icon="@drawable/ic_skip_next"
+            app:iconSize="20dp"
+            app:iconTint="@color/text_primary"
+            app:backgroundTint="@color/secondary_yellow"/>
 
     </LinearLayout>
 
