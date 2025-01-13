@@ -22,11 +22,11 @@
             android:layout_height="48dp"
             android:layout_marginBottom="8dp"/>
 
-        <TextView
-            android:id="@+id/iconName"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="12sp"/>
+<!--        <TextView-->
+<!--            android:id="@+id/iconName"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:textSize="12sp"/>-->
 
     </LinearLayout>
 

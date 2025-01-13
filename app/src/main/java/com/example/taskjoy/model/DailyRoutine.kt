@@ -9,9 +9,9 @@ data class DailyRoutine(
     val name: String = "",
     val date: Timestamp = Timestamp.now(),
     val image: String = "MORNING",
-    var steps: MutableList<String> = mutableListOf(),
+    var steps: MutableList<Step> = mutableListOf(), // Store embedded Step objects
     var completed: Boolean = false,
-    var notes: String = "", // Add notes field
+    var notes: String = "", // Routine-level notes
     @DocumentId
     var id: String = ""
 )

@@ -54,7 +54,7 @@
             android:textColor="@color/text_primary"
             app:layout_constraintStart_toEndOf="@id/routine_icon_container"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintEnd_toStartOf="@id/routine_completion_indicator" />
+            app:layout_constraintEnd_toStartOf="@id/completion_indicator_container" />
 
         <TextView
             android:id="@+id/routine_step_quantity"
@@ -80,35 +80,78 @@
             android:ellipsize="end"
             android:maxLines="2"
             app:layout_constraintStart_toEndOf="@id/routine_icon_container"
-            app:layout_constraintEnd_toStartOf="@id/routine_completion_indicator"
+            app:layout_constraintEnd_toStartOf="@id/completion_indicator_container"
             app:layout_constraintTop_toBottomOf="@id/routine_step_quantity" />
 
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/routine_completion_indicator"
+        <FrameLayout
+            android:id="@+id/completion_indicator_container"
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:layout_marginEnd="8dp"
-            android:padding="6dp"
-            android:src="@drawable/ic_checkmark"
             android:visibility="gone"
-            android:background="@color/accent_green"
-            app:shapeAppearanceOverlay="@style/CircleImageView"
-            app:layout_constraintEnd_toStartOf="@id/routine_edit_icon"
+            app:layout_constraintEnd_toStartOf="@id/edit_icon_container"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintBottom_toBottomOf="parent">
 
-        <com.google.android.material.imageview.ShapeableImageView
-            android:id="@+id/routine_edit_icon"
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/completion_indicator_background"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/accent_green"
+                app:shapeAppearanceOverlay="@style/CircleImageView" />
+
+            <ImageView
+                android:id="@+id/routine_completion_indicator"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_checkmark"
+                android:scaleType="fitCenter" />
+
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/delete_icon_container"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:padding="8dp"
+            app:layout_constraintRight_toLeftOf="@id/edit_icon_container"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <ImageView
+                android:id="@+id/deleteIcon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_delete" />
+        </FrameLayout>
+
+        <FrameLayout
+            android:id="@+id/edit_icon_container"
             android:layout_width="32dp"
             android:layout_height="32dp"
-            android:padding="6dp"
-            android:src="@drawable/ic_edit"
             android:visibility="gone"
-            android:background="@color/fun_purple"
-            app:shapeAppearanceOverlay="@style/CircleImageView"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent" />
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/edit_icon_background"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/fun_purple"
+                app:shapeAppearanceOverlay="@style/CircleImageView" />
+
+            <ImageView
+                android:id="@+id/routine_edit_icon"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_edit"
+                android:scaleType="fitCenter" />
+
+        </FrameLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

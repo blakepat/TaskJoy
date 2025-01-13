@@ -126,7 +126,7 @@
                         android:minHeight="56dp"
                         android:textSize="18sp"
                         app:backgroundTint="@color/secondary_yellow"
-                        app:icon="@drawable/ic_games"
+                        app:icon="@drawable/ic_puzzle"
                         app:iconGravity="textStart"
                         android:textColor="@color/text_primary"/>
 

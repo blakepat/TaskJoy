@@ -17,11 +17,23 @@
         android:padding="16dp"
         android:background="?android:attr/selectableItemBackground">
 
+        <ImageView
+            android:id="@+id/dragHandle"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_drag_handle"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:contentDescription="Drag handle" />
+
         <FrameLayout
             android:id="@+id/step_icon_container"
             android:layout_width="56dp"
             android:layout_height="56dp"
-            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginStart="8dp"
+            app:layout_constraintStart_toEndOf="@id/dragHandle"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent">
 
@@ -101,6 +113,23 @@
         </FrameLayout>
 
         <FrameLayout
+            android:id="@+id/deleteIconContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            android:padding="8dp"
+            app:layout_constraintRight_toLeftOf="@id/edit_icon_container"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <ImageView
+                android:id="@+id/deleteIcon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:src="@drawable/ic_delete" />
+        </FrameLayout>
+
+        <FrameLayout
             android:id="@+id/edit_icon_container"
             android:layout_width="32dp"
             android:layout_height="32dp"
@@ -120,6 +149,7 @@
                 android:id="@+id/stepEditIcon"
                 android:layout_width="20dp"
                 android:layout_height="20dp"
+                android:padding="2dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_edit"
                 android:scaleType="fitCenter" />
