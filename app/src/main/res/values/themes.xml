@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.TaskJoy" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
@@ -6,10 +7,39 @@
         <item name="colorOnPrimary">#FFFFFF</item>
         <item name="android:statusBarColor">#FB0093FB</item>
         <item name="colorAccent">#FFC107</item>
-
-        <!-- Material CardView style -->
+        <item name="materialAlertDialogTheme">@style/DeleteConfirmationDialog</item>
         <item name="materialCardViewStyle">@style/Widget.MaterialComponents.CardView</item>
     </style>
 
     <style name="Theme.TaskJoy" parent="Base.Theme.TaskJoy" />
+
+    <style name="DeleteConfirmationDialog" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
+        <item name="shapeAppearance">@style/ShapeAppearance.DeleteConfirmationDialog</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/DeleteConfirmationDialog.TitleText</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/DeleteConfirmationDialog.BodyText</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.DeleteConfirmationDialog.Button.Positive</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.DeleteConfirmationDialog.Button.Negative</item>
+    </style>
+
+    <style name="ShapeAppearance.DeleteConfirmationDialog" parent="ShapeAppearance.MaterialComponents.MediumComponent">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16dp</item>
+    </style>
+
+    <style name="DeleteConfirmationDialog.TitleText" parent="TextAppearance.MaterialComponents.Headline6">
+        <item name="android:textColor">@color/primary_blue</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="DeleteConfirmationDialog.BodyText" parent="TextAppearance.MaterialComponents.Body1">
+        <item name="android:textColor">@color/text_primary</item>
+    </style>
+
+    <style name="Widget.DeleteConfirmationDialog.Button.Positive" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/primary_blue</item>
+    </style>
+
+    <style name="Widget.DeleteConfirmationDialog.Button.Negative" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/secondary_text</item>
+    </style>
 </resources>
