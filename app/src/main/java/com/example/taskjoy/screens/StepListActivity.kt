@@ -178,6 +178,7 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
             putExtra("userId", endUserId)
             putExtra("routineId", routineId)
             putExtra("stepId", step.id)
+            putExtra("templateStepId", step.templateStepId) // Add templateStepId
         }
         startActivity(intent)
     }
