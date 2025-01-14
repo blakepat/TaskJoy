@@ -44,11 +44,11 @@ class LoginActivity : AppCompatActivity() {
             signup()
         }
 
-        binding.btnGuest.setOnClickListener {
-            //TODO: CREATE INTENT TO GO TO THIRD SCREEN
-//            val intent = Intent(this@LoginActivity, CreateAccountActivity::class.java)
-//            startActivity(intent)
-        }
+//        binding.btnGuest.setOnClickListener {
+//            //TODO: CREATE INTENT TO GO TO THIRD SCREEN
+////            val intent = Intent(this@LoginActivity, CreateAccountActivity::class.java)
+////            startActivity(intent)
+//        }
     }
 
 
