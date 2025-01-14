@@ -74,7 +74,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Email"
                         android:inputType="textEmailAddress"
-                        android:text="blakepat@icloud.com"/>
+                        android:text=""/>
 
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -95,7 +95,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Full name"
                         android:inputType="textPersonName"
-                        android:text="Seth"/>
+                        android:text=""/>
 
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -126,7 +126,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Enter password"
                         android:inputType="textPassword"
-                        android:text="123456"/>
+                        android:text=""/>
 
                 </com.google.android.material.textfield.TextInputLayout>
 
@@ -148,7 +148,7 @@
                         android:layout_height="wrap_content"
                         android:hint="Confirm password"
                         android:inputType="textPassword"
-                        android:text="123456"/>
+                        android:text=""/>
 
                 </com.google.android.material.textfield.TextInputLayout>
 
