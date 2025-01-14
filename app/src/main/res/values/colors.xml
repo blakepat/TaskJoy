@@ -28,6 +28,7 @@
     <color name="accent_green">#4CAF50</color>
     <color name="fun_purple">#7C4DFF</color>
     <color name="playful_pink">#FF4081</color>
+    <color name="playful_pink_ripple">#1FF06292</color>
 
     <!-- Calendar specific colors -->
     <color name="calendar_selected_day">#4CAF50</color>

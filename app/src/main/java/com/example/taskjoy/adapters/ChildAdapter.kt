@@ -1,12 +1,17 @@
 package com.example.taskjoy.adapters
 
+import android.app.ProgressDialog.show
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.taskjoy.R
 import com.example.taskjoy.databinding.StepItemBinding
 import com.example.taskjoy.databinding.ThreeLineRowLayoutBinding
 import com.example.taskjoy.model.EndUser
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class ChildAdapter(
     private val children: List<EndUser>,
@@ -39,15 +44,36 @@ class ChildAdapter(
         holder.binding.btnEdit.visibility = if (isParent) View.VISIBLE else View.GONE
         holder.binding.btnDelete.visibility = if (isParent) View.VISIBLE else View.GONE
 
-        //Go to routine list for single child
-        holder.binding.root.setOnClickListener {
+        // Set click listener on the content area instead of the whole root
+        holder.binding.contentArea.setOnClickListener {
             listener.onChildClick(child.id)
         }
+
         holder.binding.btnEdit.setOnClickListener {
             listener.onEditClick(child.id)
         }
         holder.binding.btnDelete.setOnClickListener {
-            listener.onDeleteClick(child.id)
+            showDeleteConfirmationDialog(holder.itemView.context, child)
         }
+    }
+
+
+    private fun showDeleteConfirmationDialog(context: Context, child: EndUser) {
+        MaterialAlertDialogBuilder(context, R.style.DeleteConfirmationDialog)
+            .setTitle("Delete ${child.name}?")
+            .setMessage("Are you sure you want to delete this child profile? This action cannot be undone.")
+            .setIcon(R.drawable.ic_warning)
+            .setNegativeButton("Cancel", null)
+            .setPositiveButton("Delete") { _, _ ->
+                listener.onDeleteClick(child.id)
+            }
+            .create()
+            .apply {
+                window?.setLayout(
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.WRAP_CONTENT
+                )
+                show()
+            }
     }
 }

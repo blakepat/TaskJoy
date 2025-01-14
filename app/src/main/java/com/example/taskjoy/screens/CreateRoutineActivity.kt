@@ -7,14 +7,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import com.example.taskjoy.adapters.IconAdapter
 import com.example.taskjoy.databinding.CreateRoutineScreenBinding
-import com.example.taskjoy.model.DailyRoutine
 import com.example.taskjoy.model.RoutineTemplate
-import com.example.taskjoy.model.Step
 import com.example.taskjoy.model.TaskJoyIcon
 import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.ktx.Firebase
@@ -25,6 +22,7 @@ class CreateRoutineActivity : AppCompatActivity() {
     private lateinit var db: FirebaseFirestore
     private lateinit var auth: FirebaseAuth
     private var routineId: String? = null
+    private var dailyRoutineId: String? = null
     private var endUserId: String? = null
     private var selectedIcon: TaskJoyIcon = TaskJoyIcon.MORNING
     private var selectedDate: Calendar = Calendar.getInstance()
@@ -39,12 +37,15 @@ class CreateRoutineActivity : AppCompatActivity() {
 
         // Get routineId, endUser and selectedDate from intent
         routineId = intent.getStringExtra("routineId")
+        dailyRoutineId = intent.getStringExtra("dailyRoutineId")
         endUserId = intent.getStringExtra("endUser")
         intent.getLongExtra("selectedDate", -1).let { timestamp ->
             if (timestamp != -1L) {
                 selectedDate.timeInMillis = timestamp
             }
         }
+
+        Log.d("CreateRoutine", "Received IDs - RoutineId: $routineId, DailyRoutineId: $dailyRoutineId, EndUserId: $endUserId")
 
         if (endUserId == null) {
             Toast.makeText(this, "Error: No end user specified", Toast.LENGTH_SHORT).show()
@@ -84,7 +85,9 @@ class CreateRoutineActivity : AppCompatActivity() {
     }
 
     private fun loadRoutineData(routineId: String) {
-        // First verify this user has access to this routine
+        // First get the endUserId from the intent
+        val intentEndUserId = intent.getStringExtra("endUser")
+
         db.collection("routineTemplates")
             .document(routineId)
             .get()
@@ -92,21 +95,55 @@ class CreateRoutineActivity : AppCompatActivity() {
                 val routine = document.toObject(RoutineTemplate::class.java)
                 val createdBy = document.getString("createdBy")
 
-                // Verify the user has access to this routine
+                Log.d("CreateRoutine", "Loaded Routine - CreatedBy: $createdBy, EndUserId: $intentEndUserId")
+                Log.d("CreateRoutine", "Current User ID: ${auth.currentUser?.uid}")
+
+                // Use the endUserId from intent instead of document
+                if (intentEndUserId == null) {
+                    Log.e("CreateRoutine", "No end user ID available to check permissions")
+                    Toast.makeText(this, "Error: Unable to verify routine access", Toast.LENGTH_SHORT).show()
+                    finish()
+                    return@addOnSuccessListener
+                }
+
+                // If created by current user, allow edit directly
                 if (createdBy == auth.currentUser?.uid) {
-                    // User created this routine, load it
                     routine?.let {
                         binding.etRoutineName.setText(it.name)
                         selectedIcon = TaskJoyIcon.fromString(it.image)
                         binding.rvIcons.adapter?.notifyDataSetChanged()
                     }
-                } else {
-                    // User doesn't have access
-                    Toast.makeText(this, "You don't have access to this routine", Toast.LENGTH_SHORT).show()
-                    finish()
+                    return@addOnSuccessListener
                 }
+
+                // Check parent permissions using intentEndUserId
+                db.collection("endUser")
+                    .document(intentEndUserId)
+                    .get()
+                    .addOnSuccessListener { userDoc ->
+                        val parents = userDoc.get("parents") as? List<*>
+                        val isParent = parents?.contains(auth.currentUser?.uid) == true
+
+                        if (isParent) {
+                            routine?.let {
+                                binding.etRoutineName.setText(it.name)
+                                selectedIcon = TaskJoyIcon.fromString(it.image)
+                                binding.rvIcons.adapter?.notifyDataSetChanged()
+                            }
+                        } else {
+                            Log.e("CreateRoutine", "Access denied - Not a parent")
+                            Toast.makeText(this, "You don't have access to edit this routine", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                    }
+                    .addOnFailureListener { e ->
+                        Log.e("CreateRoutine", "Error checking user permissions", e)
+                        Toast.makeText(this, "Error checking permissions: ${e.message}", Toast.LENGTH_SHORT).show()
+                        finish()
+                    }
             }
             .addOnFailureListener { e ->
+                Log.e("CreateRoutine", "Error loading routine", e)
                 Toast.makeText(this, "Error loading routine: ${e.message}", Toast.LENGTH_SHORT).show()
                 finish()
             }
@@ -135,18 +172,23 @@ class CreateRoutineActivity : AppCompatActivity() {
             .get()
             .addOnSuccessListener { document ->
                 val parents = document.get("parents") as? List<*>
-                Log.d("CreateRoutine", "Parents list: $parents") // Debug log
+                Log.d("CreateRoutine", "Parents list: $parents")
 
                 if (parents?.contains(currentUserId) == true) {
                     // User is a parent, proceed with saving
                     saveRoutineTemplateAndDaily(name, currentUserId)
                 } else {
-                    Toast.makeText(this, "Permission denied: Only parents can create routines", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this,
+                        "Permission denied: Only parents can create routines",
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
             }
             .addOnFailureListener { e ->
-                Log.d("CreateRoutine", "Error checking permissions: ${e.message}") // Debug log
-                Toast.makeText(this, "Error checking permissions: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.d("CreateRoutine", "Error checking permissions: ${e.message}")
+                Toast.makeText(this, "Error checking permissions: ${e.message}", Toast.LENGTH_SHORT)
+                    .show()
             }
     }
 
@@ -170,69 +212,51 @@ class CreateRoutineActivity : AppCompatActivity() {
             "endUserId" to endUserId
         )
 
-        batch.set(routineDoc, routineTemplate)
+        batch.set(routineDoc, routineTemplate, com.google.firebase.firestore.SetOptions.merge())
 
-        // Create daily routine
-        val dailyRoutineRef = db.collection("endUser")
-            .document(endUserId!!)
-            .collection("dailyRoutines")
-            .document()
+        // Handle daily routine update
+        if (dailyRoutineId != null) {
+            // If we have a dailyRoutineId, update that specific daily routine
+            val dailyRoutineRef = db.collection("endUser")
+                .document(endUserId!!)
+                .collection("dailyRoutines")
+                .document(dailyRoutineId!!)
 
-        val dailyRoutine = hashMapOf(
-            "name" to name,
-            "date" to Timestamp(selectedDate.time),
-            "image" to selectedIcon.name,
-            "completed" to false,
-            "templateId" to routineDoc.id,
-            "notes" to ""
-        )
+            val dailyRoutine = hashMapOf(
+                "name" to name,
+                "image" to selectedIcon.name,
+                "templateId" to routineDoc.id
+            )
 
-        batch.set(dailyRoutineRef, dailyRoutine)
+            batch.update(dailyRoutineRef, dailyRoutine as Map<String, Any>)
+        } else {
+            // For new routine, create a new daily routine
+            val dailyRoutineRef = db.collection("endUser")
+                .document(endUserId!!)
+                .collection("dailyRoutines")
+                .document()
 
-        // Add routine template reference to endUser if it's a new template
-        if (routineId == null) {
+            val dailyRoutine = hashMapOf(
+                "name" to name,
+                "date" to Timestamp(selectedDate.time),
+                "image" to selectedIcon.name,
+                "completed" to false,
+                "templateId" to routineDoc.id,
+                "notes" to ""
+            )
+
+            batch.set(dailyRoutineRef, dailyRoutine)
+
+            // Only add template reference for new routines
             val endUserRef = db.collection("endUser").document(endUserId!!)
             batch.update(endUserRef, "routineTemplates", FieldValue.arrayUnion(routineDoc.id))
         }
 
         batch.commit()
             .addOnSuccessListener {
-                // If updating existing template, get its steps
-                if (routineId != null) {
-                    routineDoc.get().addOnSuccessListener { templateDoc ->
-                        val template = templateDoc.toObject(RoutineTemplate::class.java)
-                        val templateSteps = template?.steps ?: listOf()
-
-                        if (templateSteps.isNotEmpty()) {
-                            // Copy template steps to daily routine steps subcollection
-                            db.collection("steps")
-                                .whereIn(FieldPath.documentId(), templateSteps)
-                                .get()
-                                .addOnSuccessListener { steps ->
-                                    steps.forEach { templateStep ->
-                                        val stepData = templateStep.toObject(Step::class.java)
-                                        dailyRoutineRef.collection("steps").document()
-                                            .set(stepData.copy(
-                                                completed = false,
-                                                completedAt = null,
-                                                notes = ""
-                                            ))
-                                    }
-                                    Toast.makeText(this, "Routine saved successfully", Toast.LENGTH_SHORT).show()
-                                    finish()
-                                }
-                                .addOnFailureListener { e ->
-                                    Toast.makeText(this, "Error copying steps: ${e.message}", Toast.LENGTH_SHORT).show()
-                                }
-                        } else {
-                            Toast.makeText(this, "Routine saved successfully", Toast.LENGTH_SHORT).show()
-                            finish()
-                        }
-                    }
-                } else {
-                    Toast.makeText(this, "Routine saved successfully", Toast.LENGTH_SHORT).show()
-                    finish()
-                }
+                val message = if (dailyRoutineId != null) "Routine updated successfully" else "Routine saved successfully"
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                finish()
             }
             .addOnFailureListener { e ->
                 Toast.makeText(this, "Error saving routine: ${e.message}", Toast.LENGTH_SHORT).show()

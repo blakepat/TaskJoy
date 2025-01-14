@@ -84,7 +84,13 @@ class CreateStepActivity : AppCompatActivity() {
     }
 
     private fun loadExistingStep(stepId: String) {
-        db.collection("steps").document(stepId)
+        // First try to load from dailySteps subcollection
+        db.collection("endUser")
+            .document(userId)
+            .collection("dailyRoutines")
+            .document(routineId)
+            .collection("dailySteps")
+            .document(stepId)
             .get()
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
@@ -208,43 +214,51 @@ class CreateStepActivity : AppCompatActivity() {
     }
 
     private fun updateExistingStep(name: String) {
-        val stepRef = db.collection("steps").document(stepId!!)
+        val batch = db.batch()
 
-        val updates = mutableMapOf<String, Any?>(
-            "name" to name,
-            "description" to binding.etStepNotes.text.toString()
-        )
+        // Update the template step if it exists
+        if (!stepId.isNullOrEmpty()) {
+            // Get template step ID from intent
+            val templateStepId = intent.getStringExtra("templateStepId")
 
-        if (selectedIcon == TaskJoyIcon.CUSTOM && selectedCustomIcon != null) {
-            updates["customIconPath"] = selectedCustomIcon!!.filepath
-            updates["image"] = TaskJoyIcon.CUSTOM.name
-        } else {
-            updates["customIconPath"] = null
-            updates["image"] = selectedIcon.name
+            if (!templateStepId.isNullOrEmpty()) {
+                val templateStepRef = db.collection("steps").document(templateStepId)
+                val templateStepUpdates = hashMapOf(
+                    "name" to name,
+                    "description" to binding.etStepNotes.text.toString(),
+                    "image" to selectedIcon.name,
+                    "customIconPath" to if (selectedIcon == TaskJoyIcon.CUSTOM) selectedCustomIcon?.filepath else null
+                )
+                batch.set(templateStepRef, templateStepUpdates, SetOptions.merge())
+            }
+
+            // Update the daily step
+            val dailyStepRef = db.collection("endUser")
+                .document(userId)
+                .collection("dailyRoutines")
+                .document(routineId)
+                .collection("dailySteps")
+                .document(stepId!!)
+
+            val dailyStepUpdates = hashMapOf(
+                "name" to name,
+                "description" to binding.etStepNotes.text.toString(),
+                "image" to selectedIcon.name,
+                "customIconPath" to if (selectedIcon == TaskJoyIcon.CUSTOM) selectedCustomIcon?.filepath else null
+            )
+            batch.set(dailyStepRef, dailyStepUpdates, SetOptions.merge())
+
+            // Commit all updates in a batch
+            batch.commit()
+                .addOnSuccessListener {
+                    Toast.makeText(this, "Step updated successfully", Toast.LENGTH_SHORT).show()
+                    finish()
+                }
+                .addOnFailureListener { e ->
+                    Log.e("CreateStep", "Error updating step: ${e.message}")
+                    Toast.makeText(this, "Error updating step: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
         }
-
-        stepRef.update(updates)
-            .addOnSuccessListener {
-                // Update the dailySteps subcollection for the current routine
-                val dailyStepRef = db.collection("endUser")
-                    .document(userId)
-                    .collection("dailyRoutines")
-                    .document(routineId)
-                    .collection("dailySteps")
-                    .document(stepId!!)
-
-                dailyStepRef.update(updates)
-                    .addOnSuccessListener {
-                        Toast.makeText(this, "Step updated successfully.", Toast.LENGTH_SHORT).show()
-                        finish()
-                    }
-                    .addOnFailureListener { e ->
-                        Log.w("ERROR", "Error updating dailySteps: ${e.message}")
-                    }
-            }
-            .addOnFailureListener { e ->
-                Toast.makeText(this, "Error updating step: ${e.message}", Toast.LENGTH_SHORT).show()
-            }
     }
 
     private fun createNewStep(name: String) {

@@ -48,7 +48,9 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
 
         auth = Firebase.auth
         // Get endUserId from intent if available
-        endUserId = intent.getStringExtra("endUser")
+        endUserId = intent.getStringExtra("endUser").toString()
+
+
 
         // Get selected date from intent if it exists
         intent.getLongExtra("selectedDate", -1).let { timestamp ->
@@ -120,7 +122,9 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
     override fun onEditClick(routine: DailyRoutine) {
         val intent = Intent(this, CreateRoutineActivity::class.java).apply {
             putExtra("routineId", routine.templateId)
+            putExtra("dailyRoutineId", routine.id)  // Add the daily routine ID
             putExtra("endUser", endUserId)
+            putExtra("selectedDate", selectedDate.timeInMillis)  // Pass the selected date
         }
         startActivity(intent)
     }
