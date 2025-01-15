@@ -23,6 +23,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldPath
+import com.google.firebase.firestore.WriteBatch
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
@@ -174,11 +175,17 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
                     .whereIn(FieldPath.documentId(), templateIds)
                     .get()
                     .addOnSuccessListener { templates ->
+                        // Create a single batch for all operations
                         val batch = db.batch()
+
+                        // Use a counter to track when all steps are processed
+                        var templatesProcessed = 0
+                        val totalTemplates = templates.size()
 
                         templates.forEach { template ->
                             val templateData = template.toObject(RoutineTemplate::class.java)
 
+                            // Create daily routine document reference
                             val dailyRoutineRef = db.collection("endUser")
                                 .document(endUserId)
                                 .collection("dailyRoutines")
@@ -195,34 +202,49 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
 
                             batch.set(dailyRoutineRef, dailyRoutine)
 
+                            // If there are no steps, increment counter
+                            if (templateData?.steps.isNullOrEmpty()) {
+                                templatesProcessed++
+                                if (templatesProcessed == totalTemplates) {
+                                    // Commit batch when all templates are processed
+                                    commitBatchAndRefresh(batch, endUserId)
+                                }
+                                return@forEach
+                            }
+
+                            // Fetch all steps for this template
                             val stepFetches = templateData?.steps?.map { stepId ->
                                 db.collection("steps").document(stepId).get()
                             } ?: emptyList()
 
                             Tasks.whenAllSuccess<DocumentSnapshot>(stepFetches)
                                 .addOnSuccessListener { stepDocs ->
-                                    stepDocs.forEach { stepDoc ->
+                                    // Add all steps to the batch
+                                    stepDocs.forEachIndexed { index, stepDoc ->
                                         val stepData = stepDoc.toObject(Step::class.java)
                                         if (stepData != null) {
-                                            val dailyStepRef = dailyRoutineRef.collection("dailySteps").document()
+                                            val dailyStepRef = dailyRoutineRef
+                                                .collection("dailySteps")
+                                                .document()
+
                                             val dailyStep = Step(
                                                 name = stepData.name,
                                                 description = stepData.description,
                                                 image = stepData.image,
                                                 completed = false,
                                                 notes = "",
-                                                templateStepId = stepDoc.id
+                                                templateStepId = stepDoc.id,
+                                                order = index  // Add order field
                                             )
                                             batch.set(dailyStepRef, dailyStep)
                                         }
                                     }
-                                    batch.commit()
-                                        .addOnSuccessListener {
-                                            getSpecificEndUserDailyRoutines(endUserId)
-                                        }
-                                        .addOnFailureListener { e ->
-                                            Log.e("RoutineList", "Error committing batch write: ${e.message}")
-                                        }
+
+                                    templatesProcessed++
+                                    if (templatesProcessed == totalTemplates) {
+                                        // Commit batch when all templates are processed
+                                        commitBatchAndRefresh(batch, endUserId)
+                                    }
                                 }
                                 .addOnFailureListener { e ->
                                     Log.e("RoutineList", "Error fetching step documents: ${e.message}")
@@ -235,6 +257,16 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
             }
             .addOnFailureListener { e ->
                 Log.e("RoutineList", "Error fetching end user document: ${e.message}")
+            }
+    }
+
+    private fun commitBatchAndRefresh(batch: WriteBatch, endUserId: String) {
+        batch.commit()
+            .addOnSuccessListener {
+                getSpecificEndUserDailyRoutines(endUserId)
+            }
+            .addOnFailureListener { e ->
+                Log.e("RoutineList", "Error committing batch write: ${e.message}")
             }
     }
 

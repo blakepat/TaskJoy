@@ -209,6 +209,16 @@ class StepDetailsActivity : AppCompatActivity() {
             }
         }
 
+        binding.btnSkipStep.setOnClickListener {
+            if (currentPosition < stepIds.size - 1) {
+                // If not the last step, just move to next step
+                loadStep(stepIds[currentPosition + 1], currentPosition + 1)
+            } else {
+                // If last step, show completion dialog without marking steps complete
+                showCompletionCelebration()
+            }
+        }
+
         binding.btnResetCompletion.setOnClickListener {
             markStepAsIncomplete()
         }
