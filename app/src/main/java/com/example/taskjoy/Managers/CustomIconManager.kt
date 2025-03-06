@@ -1,4 +1,4 @@
-package com.example.taskjoy
+package com.example.taskjoy.Managers
 
 import android.content.Context
 import android.net.Uri

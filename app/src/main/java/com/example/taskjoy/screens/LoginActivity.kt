@@ -3,6 +3,7 @@ package com.example.taskjoy.screens
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat.startActivity
 import com.example.taskjoy.databinding.LoginScreenBinding
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
@@ -20,7 +21,6 @@ class LoginActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         auth = Firebase.auth
-
         createClickListeners()
     }
 
@@ -53,13 +53,12 @@ class LoginActivity : AppCompatActivity() {
 
 
     private fun login() {
-        if ((binding.etEmail.text?.isNotEmpty() == true) && (binding.etPassword.text?.isNotEmpty() == true)) {
+        if (binding.etEmail.text?.isNotEmpty() == true && (binding.etPassword.text?.isNotEmpty() == true)) {
             val emailFromUI = binding.etEmail.text.toString()
             val passwordFromUI = binding.etPassword.text.toString()
 
             auth.signInWithEmailAndPassword(emailFromUI, passwordFromUI)
-                .addOnCompleteListener(this) {
-                        task ->
+                .addOnCompleteListener(this) { task ->
                     if (task.isSuccessful) {
                         Snackbar.make(binding.root, "Login Successful", Snackbar.LENGTH_SHORT).show()
                         val intent = Intent(this@LoginActivity, MainActivity::class.java)

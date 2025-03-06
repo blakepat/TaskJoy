@@ -1,10 +1,13 @@
 package com.example.taskjoy.screens
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
@@ -12,22 +15,17 @@ import com.example.taskjoy.R
 import com.example.taskjoy.databinding.ActivityStepDetailsBinding
 import com.example.taskjoy.model.Step
 import com.example.taskjoy.model.TaskJoyIcon
+import com.example.taskjoy.repository.RepositoryService
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
-import com.google.firebase.Timestamp
-import android.content.Context
-import androidx.activity.OnBackPressedCallback
 import com.google.firebase.auth.EmailAuthProvider
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.auth.AuthCredential
-import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.io.File
 
 class StepDetailsActivity : AppCompatActivity() {
     private lateinit var binding: ActivityStepDetailsBinding
-    private val db = Firebase.firestore
+    private lateinit var repositoryService: RepositoryService
     private lateinit var step: Step
     private var endUserId: String? = null
     private var routineId: String = ""
@@ -40,6 +38,9 @@ class StepDetailsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityStepDetailsBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Initialize repository service
+        repositoryService = RepositoryService()
 
         // Enable the up button in the action bar
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -158,40 +159,6 @@ class StepDetailsActivity : AppCompatActivity() {
         binding.btnSaveNotes.visibility = if (isChildLockEnabled) View.GONE else View.VISIBLE
     }
 
-    private fun showPasswordDialog() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_password, null)
-        val passwordInput = dialogView.findViewById<TextInputEditText>(R.id.passwordInput)
-
-        AlertDialog.Builder(this)
-            .setTitle("Enter Password to Exit")
-            .setView(dialogView)
-            .setPositiveButton("Unlock") { _, _ ->
-                val password = passwordInput.text.toString()
-                validatePassword(password)
-            }
-            .setNegativeButton("Cancel", null)
-            .show()
-    }
-
-    private fun validatePassword(password: String) {
-        val user = Firebase.auth.currentUser
-        val email = user?.email
-
-        if (user != null && email != null) {
-            val credential = EmailAuthProvider.getCredential(email, password)
-            user.reauthenticateAndRetrieveData(credential)
-                .addOnSuccessListener {
-                    isChildLockEnabled = false
-                    finish()
-                }
-                .addOnFailureListener {
-                    Snackbar.make(binding.root, "Incorrect password", Snackbar.LENGTH_SHORT).show()
-                }
-        } else {
-            Snackbar.make(binding.root, "Authentication error", Snackbar.LENGTH_SHORT).show()
-        }
-    }
-
     private fun setupClickListeners() {
         binding.btnPrevStep.setOnClickListener {
             if (currentPosition > 0) {
@@ -272,137 +239,97 @@ class StepDetailsActivity : AppCompatActivity() {
             return
         }
 
-        val dailyStepsRef = db.collection("endUser")
-            .document(endUserId!!)
-            .collection("dailyRoutines")
-            .document(routineId)
-            .collection("dailySteps")
-
-        dailyStepsRef.get()
-            .addOnSuccessListener { stepsSnapshot ->
-                val batch = db.batch()
-                val currentTime = Timestamp.now()
-
-                stepsSnapshot.documents.forEach { stepDoc ->
-                    batch.update(stepDoc.reference, mapOf(
-                        "completed" to true,
-                        "completedAt" to currentTime
-                    ))
-                }
-
-                batch.commit()
-                    .addOnSuccessListener {
-                        Snackbar.make(binding.root, "Routine completed!", Snackbar.LENGTH_SHORT).show()
-                        step.completed = true
-                        step.completedAt = currentTime
-                        updateCompletionStatus()
-                        showCompletionCelebration()
-                    }
-                    .addOnFailureListener { error ->
-                        Log.e("StepDetailsActivity", "Error completing steps", error)
-                        Snackbar.make(binding.root, "Error completing routine", Snackbar.LENGTH_SHORT).show()
-                    }
-            }
-            .addOnFailureListener { error ->
-                Log.e("StepDetailsActivity", "Error fetching steps to complete", error)
+        repositoryService.completeAllSteps(
+            endUserId = endUserId!!,
+            routineId = routineId,
+            onSuccess = { timestamp ->
+                Snackbar.make(binding.root, "Routine completed!", Snackbar.LENGTH_SHORT).show()
+                step.completed = true
+                step.completedAt = timestamp
+                updateCompletionStatus()
+                showCompletionCelebration()
+            },
+            onError = { error ->
+                Log.e("StepDetailsActivity", "Error completing steps", error)
                 Snackbar.make(binding.root, "Error completing routine", Snackbar.LENGTH_SHORT).show()
             }
+        )
     }
 
     private fun markStepAsComplete(onSuccess: (() -> Unit)? = null) {
-        val stepRef = db.collection("endUser")
-            .document(endUserId!!)
-            .collection("dailyRoutines")
-            .document(routineId)
-            .collection("dailySteps")
-            .document(step.id)
-
-        val currentTime = Timestamp.now()
-
-        stepRef.update(mapOf(
-            "completed" to true,
-            "completedAt" to currentTime
-        )).addOnSuccessListener {
-            step.completed = true
-            step.completedAt = currentTime
-            updateCompletionStatus()
-            updateNavigationButtons()
-            Snackbar.make(binding.root, "Step completed!", Snackbar.LENGTH_SHORT).show()
-            onSuccess?.invoke()
-        }.addOnFailureListener { error ->
-            Log.e("StepDetailsActivity", "Error marking step as complete", error)
-            Snackbar.make(binding.root, "Error updating step", Snackbar.LENGTH_SHORT).show()
-        }
+        repositoryService.markStepAsComplete(
+            endUserId = endUserId ?: return,
+            routineId = routineId,
+            stepId = step.id,
+            onSuccess = { timestamp ->
+                step.completed = true
+                step.completedAt = timestamp
+                updateCompletionStatus()
+                updateNavigationButtons()
+                Snackbar.make(binding.root, "Step completed!", Snackbar.LENGTH_SHORT).show()
+                onSuccess?.invoke()
+            },
+            onError = { error ->
+                Log.e("StepDetailsActivity", "Error marking step as complete", error)
+                Snackbar.make(binding.root, "Error updating step", Snackbar.LENGTH_SHORT).show()
+            }
+        )
     }
 
     private fun markStepAsIncomplete() {
-        val stepRef = db.collection("endUser")
-            .document(endUserId!!)
-            .collection("dailyRoutines")
-            .document(routineId)
-            .collection("dailySteps")
-            .document(step.id)
-
-        stepRef.update(mapOf(
-            "completed" to false,
-            "completedAt" to null
-        )).addOnSuccessListener {
-            step.completed = false
-            step.completedAt = null
-            updateCompletionStatus()
-            updateNavigationButtons()
-            Snackbar.make(binding.root, "Step marked as incomplete", Snackbar.LENGTH_SHORT).show()
-        }.addOnFailureListener { error ->
-            Log.e("StepDetailsActivity", "Error marking step as incomplete", error)
-            Snackbar.make(binding.root, "Error updating step", Snackbar.LENGTH_SHORT).show()
-        }
+        repositoryService.markStepAsIncomplete(
+            endUserId = endUserId ?: return,
+            routineId = routineId,
+            stepId = step.id,
+            onSuccess = {
+                step.completed = false
+                step.completedAt = null
+                updateCompletionStatus()
+                updateNavigationButtons()
+                Snackbar.make(binding.root, "Step marked as incomplete", Snackbar.LENGTH_SHORT).show()
+            },
+            onError = { error ->
+                Log.e("StepDetailsActivity", "Error marking step as incomplete", error)
+                Snackbar.make(binding.root, "Error updating step", Snackbar.LENGTH_SHORT).show()
+            }
+        )
     }
 
     private fun saveNotes() {
         val newNotes = binding.notesEditText.text.toString()
-        val stepRef = db.collection("endUser")
-            .document(endUserId!!)
-            .collection("dailyRoutines")
-            .document(routineId)
-            .collection("dailySteps")
-            .document(step.id)
 
-        stepRef.update("notes", newNotes)
-            .addOnSuccessListener {
+        repositoryService.saveStepNotes(
+            endUserId = endUserId ?: return,
+            routineId = routineId,
+            stepId = step.id,
+            notes = newNotes,
+            onSuccess = {
                 step.notes = newNotes
                 Snackbar.make(binding.root, "Notes saved!", Snackbar.LENGTH_SHORT).show()
-            }
-            .addOnFailureListener { error ->
+            },
+            onError = { error ->
                 Log.e("StepDetailsActivity", "Error saving notes", error)
                 Snackbar.make(binding.root, "Error saving notes", Snackbar.LENGTH_SHORT).show()
             }
+        )
     }
 
     private fun getStep(stepId: String) {
-        val stepRef = db.collection("endUser")
-            .document(endUserId!!)
-            .collection("dailyRoutines")
-            .document(routineId)
-            .collection("dailySteps")
-            .document(stepId)
-
-        stepRef.get()
-            .addOnSuccessListener { document ->
-                if (document != null && document.exists()) {
-                    val stepFromDB: Step = document.toObject(Step::class.java)!!
-                    step = stepFromDB
-                    setupUI()
-                    updateNavigationButtons()
-                    updateCompletionStatus()
-                } else {
-                    Log.w("TESTING", "No such document")
-                    Snackbar.make(binding.root, "Step not found", Snackbar.LENGTH_SHORT).show()
-                }
-            }
-            .addOnFailureListener { error ->
-                Log.w("TESTING", "Error getting step document.", error)
+        repositoryService.getStep(
+            endUserId = endUserId ?: return,
+            routineId = routineId,
+            stepId = stepId,
+            onSuccess = { stepFromDB ->
+                step = stepFromDB
+                setupUI()
+                updateNavigationButtons()
+                updateCompletionStatus()
+            },
+            onError = { error ->
+                Log.e("StepDetailsActivity", "Error getting step", error)
                 Snackbar.make(binding.root, "Error getting step", Snackbar.LENGTH_SHORT).show()
             }
+        )
     }
 
     private fun setupUI() {

@@ -1,6 +1,7 @@
 package com.example.taskjoy.screens
 
 import android.os.Bundle
+import android.util.Log
 import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import com.example.taskjoy.databinding.CreateAccountScreenBinding
@@ -15,7 +16,6 @@ class CreateAccountActivity : AppCompatActivity() {
 
     private lateinit var binding: CreateAccountScreenBinding
     private lateinit var auth: FirebaseAuth
-
     private val db = Firebase.firestore
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,30 +32,25 @@ class CreateAccountActivity : AppCompatActivity() {
     }
 
 
-
     private fun setupClickListeners() {
         binding.btnSignup.setOnClickListener {
             val email = binding.etEmail.text.toString()
             val name = binding.etName.text.toString()
             val passwordOne = binding.etPasswordOne.text.toString()
+            val passwordTwo = binding.etPasswordTwo.text.toString()
 
-            if (formsFilledOutCorrectly()) {
-                createAccount(email, passwordOne, name)
+            if (formsFilledOutCorrectly(email, name, passwordOne, passwordTwo)) {
+                createAccount(email, name, passwordOne)
             }
         }
     }
 
 
-    private fun formsFilledOutCorrectly(): Boolean {
-        val email = binding.etEmail.text.toString()
-        val name = binding.etName.text.toString()
-        val passwordOne = binding.etPasswordOne.text.toString()
-        val passwordTwo = binding.etPasswordTwo.text.toString()
-
-        if (email.isEmpty() or name.isEmpty() or passwordOne.isEmpty() or passwordTwo.isEmpty()) {
+    private fun formsFilledOutCorrectly(email: String, name: String, passwordOne: String, passwordTwo: String): Boolean {
+        if (email.isEmpty() || name.isEmpty() || passwordOne.isEmpty() || passwordTwo.isEmpty()) {
             Snackbar.make(binding.root, "Please ensure all fields are filled out", Snackbar.LENGTH_SHORT).show()
             return false
-        } else if ((passwordOne.count() < 6) or (passwordOne.count() > 20)) {
+        } else if ((passwordOne.length < 6) || (passwordOne.length > 20)) {
             Snackbar.make(binding.root, "Please ensure password meets requirements", Snackbar.LENGTH_SHORT).show()
             return false
         } else if (passwordOne != passwordTwo) {
@@ -67,29 +62,32 @@ class CreateAccountActivity : AppCompatActivity() {
     }
 
 
-
-
-    private fun createAccount(email: String, password: String, name: String) {
+    private fun createAccount(email: String, name: String, password: String) {
         auth.createUserWithEmailAndPassword(email, password)
             .addOnSuccessListener {
                 val firebaseUser = auth.currentUser
-                val user = Parent(
-                    id = firebaseUser?.uid ?: "",
-                    email = email,
-                    name = name,
-                    children = listOf()
-                )
 
-                firebaseUser?.uid?.let { id ->
+                if (firebaseUser != null) {
+                    val parent = Parent(
+                        id = firebaseUser.uid,
+                        email = email,
+                        name = name,
+                        children = listOf()
+                    )
+
                     db.collection("parents")
-                        .document(id)
-                        .set(user)
+                        .document(firebaseUser.uid)
+                        .set(parent)
                         .addOnSuccessListener {
                             finish()
                         }
                         .addOnFailureListener { e ->
-                            Snackbar.make(binding.root, "Failed to create user $e ", Snackbar.LENGTH_SHORT).show()
+                            Log.e("CreateAccount", "Database error: ${e.message}", e)
+                            Snackbar.make(binding.root, "Failed to create user profile. Please try again.", Snackbar.LENGTH_SHORT).show()
                         }
+                } else {
+                    Log.e("CreateAccount", "Firebase user was null after successful authentication")
+                    Snackbar.make(binding.root, "Account creation error. Please try again.", Snackbar.LENGTH_SHORT).show()
                 }
             }
             .addOnFailureListener { e ->

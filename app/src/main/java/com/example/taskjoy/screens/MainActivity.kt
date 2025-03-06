@@ -15,17 +15,11 @@ import com.example.taskjoy.R
 import com.example.taskjoy.adapters.ChildAdapter
 import com.example.taskjoy.adapters.ChildClickListener
 import com.example.taskjoy.databinding.ActivityMainBinding
-import com.example.taskjoy.model.DailyRoutine
 import com.example.taskjoy.model.EndUser
-import com.example.taskjoy.model.Parent
+import com.example.taskjoy.repository.RepositoryService
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
-import com.google.firebase.firestore.DocumentSnapshot
-import com.google.firebase.firestore.FieldPath
-import com.google.firebase.firestore.QueryDocumentSnapshot
-import com.google.firebase.firestore.QuerySnapshot
-import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import java.text.SimpleDateFormat
 import java.util.*
@@ -33,11 +27,11 @@ import java.util.*
 class MainActivity : AppCompatActivity(), ChildClickListener {
 
     private lateinit var binding: ActivityMainBinding
-    private var db = Firebase.firestore
     private lateinit var auth: FirebaseAuth
-    private var childList = mutableListOf<EndUser>()
+    private val childList = mutableListOf<EndUser>()
     private lateinit var childAdapter: ChildAdapter
     private lateinit var selectedDate: Calendar
+    private lateinit var repositoryService: RepositoryService
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,43 +40,41 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
 
         auth = Firebase.auth
         selectedDate = Calendar.getInstance()
+        repositoryService = RepositoryService()
 
         setupRecyclerView()
         setupCalendar()
         setupClickListeners()
         updateCurrentDateDisplay()
 
+        checkChildLockMode()
+    }
 
-        // Check if app was closed in child lock mode
+    private fun checkChildLockMode() {
         val prefs = getSharedPreferences("TaskJoyPrefs", Context.MODE_PRIVATE)
-        val wasChildLocked = prefs.getBoolean("closedInChildLock", false)
+        val wasChildLocked = prefs.getBoolean("childLockEnabled", false)
 
         if (wasChildLocked) {
-            // Clear the flag
-            prefs.edit().putBoolean("closedInChildLock", false).apply()
             prefs.edit().putBoolean("childLockEnabled", false).apply()
 
-            // Force logout
             Firebase.auth.signOut()
-
-            // Show message
             Toast.makeText(this, "Session expired. Please log in again.", Toast.LENGTH_LONG).show()
-
-            // Navigate to login screen
-            // Replace with your login activity
-            val intent = Intent(this, LoginActivity::class.java)
-            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(intent)
             finish()
         }
+    }
 
+    private fun getCurrentUserId(): String? {
+        return auth.currentUser?.uid
     }
 
     private fun setupRecyclerView() {
-        childAdapter = ChildAdapter(childList, this, auth.currentUser!!.uid)
+        val currentUserId = getCurrentUserId() ?: return
+
+        childAdapter = ChildAdapter(childList, this, currentUserId)
         binding.childRecyclerView.apply {
             adapter = childAdapter
             layoutManager = LinearLayoutManager(this@MainActivity)
+            addItemDecoration(DividerItemDecoration(this.context, LinearLayoutManager.VERTICAL))
         }
     }
 
@@ -98,24 +90,10 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
     }
 
     private fun setupClickListeners() {
-//        binding.buttonToRoutineList.setOnClickListener {
-//            val intent = Intent(this, RoutineListActivity::class.java).apply {
-//                putExtra("selectedDate", Calendar.getInstance().timeInMillis)
-//            }
-//            startActivity(intent)
-//        }
-
         binding.buttonCreateChild.setOnClickListener {
             val intent = Intent(this, CreateChildActivity::class.java)
             startActivity(intent)
         }
-
-//        binding.buttonViewDateRoutines.setOnClickListener {
-//            val intent = Intent(this, RoutineListActivity::class.java).apply {
-//                putExtra("selectedDate", selectedDate.timeInMillis)
-//            }
-//            startActivity(intent)
-//        }
 
         binding.buttonToGames.setOnClickListener {
             try {
@@ -158,7 +136,7 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
 
     override fun onChildClick(id: String) {
         val intent = Intent(this, RoutineListActivity::class.java).apply {
-            putExtra("endUser", id)  // Passing the child endUser ID to RoutineListActivity
+            putExtra("endUser", id)
             putExtra("selectedDate", selectedDate.timeInMillis)
         }
         startActivity(intent)
@@ -171,104 +149,43 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
     }
 
     override fun onDeleteClick(id: String) {
-        removeEndUserFromParent(auth.currentUser!!.uid, id)
-    }
-
-    private fun removeEndUserFromParent(parentId: String, endUserId: String) {
-        db.collection("parents").document(parentId).get()
-            .addOnSuccessListener { document ->
-                val parent = document.toObject(Parent::class.java)
-                val updatedChildren = parent?.children?.toMutableList() ?: mutableListOf()
-                updatedChildren.remove(endUserId)
-
-                db.runBatch { batch ->
-                    // Remove child from parent
-                    batch.update(
-                        db.collection("parents").document(parentId),
-                        "children", updatedChildren
-                    )
-
-                    // Delete EndUser document
-                    batch.delete(db.collection("endUser").document(endUserId))
-
-                    // Delete from children subcollection
-                    batch.delete(
-                        db.collection("parents").document(parentId)
-                            .collection("children").document(endUserId)
-                    )
-
-                    // Delete all daily routines for this end user
-                    db.collection("endUser")
-                        .document(endUserId)
-                        .collection("dailyRoutines")
-                        .get()
-                        .addOnSuccessListener { routines ->
-                            val routineBatch = db.batch()
-                            routines.forEach { routine ->
-                                routineBatch.delete(routine.reference)
-                            }
-                            routineBatch.commit()
-                        }
-
-                    // Delete routine templates created for this end user
-                    db.collection("routineTemplates")
-                        .whereEqualTo("endUserId", endUserId)
-                        .get()
-                        .addOnSuccessListener { templates ->
-                            val templateBatch = db.batch()
-                            templates.forEach { template ->
-                                templateBatch.delete(template.reference)
-                            }
-                            templateBatch.commit()
-                        }
-
-                }.addOnSuccessListener {
-                    getChildren() // Refresh the list after successful deletion
-                }.addOnFailureListener { e ->
-                    Snackbar.make(binding.root, "Error removing child: ${e.message}",
-                        Snackbar.LENGTH_SHORT).show()
+        val currentUserId = getCurrentUserId()
+        if (currentUserId != null) {
+            repositoryService.deleteEndUser(
+                parentId = currentUserId,
+                endUserId = id,
+                onSuccess = {
+                    getChildren() // Refresh the list after deletion
+                    Snackbar.make(binding.root, "Child removed successfully", Snackbar.LENGTH_SHORT).show()
+                },
+                onError = { e ->
+                    Log.e("MainActivity", "Error deleting child", e)
+                    Snackbar.make(binding.root, "Error removing child. Please try again.", Snackbar.LENGTH_SHORT).show()
                 }
-            }
-            .addOnFailureListener { e ->
-                Snackbar.make(binding.root, "Error accessing parent data: ${e.message}",
-                    Snackbar.LENGTH_SHORT).show()
-            }
+            )
+        } else {
+            Snackbar.make(binding.root, "User not authenticated", Snackbar.LENGTH_SHORT).show()
+        }
     }
 
     private fun getChildren() {
-        Log.w("TESTING", "parentId: ${auth.currentUser!!.uid}")
-        db.collection("parents")
-            .document(auth.currentUser!!.uid)
-            .get()
-            .addOnSuccessListener { parentDoc: DocumentSnapshot ->
-                val childrenIds = parentDoc.get("children") as? List<String>
-                Log.w("TESTING", "childIDs: $childrenIds")
-                if (!childrenIds.isNullOrEmpty()) {
-                    db.collection("endUser")
-                        .whereIn(FieldPath.documentId(), childrenIds)
-                        .get()
-                        .addOnSuccessListener { endUserResults: QuerySnapshot ->
-                            childList.clear()
-                            for (endUserDoc: QueryDocumentSnapshot in endUserResults) {
-                                val childFromDB: EndUser = endUserDoc.toObject(EndUser::class.java)
-                                childList.add(childFromDB)
-                            }
-                            childAdapter.notifyDataSetChanged()
-                        }
-                        .addOnFailureListener { error ->
-                            Log.w("TESTING", "Error getting endUsers.", error)
-                            Snackbar.make(binding.root, "Error getting end users",
-                                Snackbar.LENGTH_SHORT).show()
-                        }
-                } else {
-                    childList.clear()
-                    childAdapter.notifyDataSetChanged()
-                }
+        val currentUserId = getCurrentUserId()
+        if (currentUserId == null) {
+            Log.w("MainActivity", "Cannot get children: User not authenticated")
+            return
+        }
+
+        repositoryService.getChildren(
+            parentId = currentUserId,
+            onSuccess = { children ->
+                childList.clear()
+                childList.addAll(children)
+                childAdapter.notifyDataSetChanged()
+            },
+            onError = { error ->
+                Log.e("MainActivity", "Error getting children", error)
+                Snackbar.make(binding.root, "Error getting children data. Please try again.", Snackbar.LENGTH_SHORT).show()
             }
-            .addOnFailureListener { error ->
-                Log.w("TESTING", "Error getting parent.", error)
-                Snackbar.make(binding.root, "Error getting parent data",
-                    Snackbar.LENGTH_SHORT).show()
-            }
+        )
     }
 }
