@@ -1,4 +1,4 @@
-package com.example.taskjoy.screens.RoutineList
+package com.example.taskjoy.viewmodels
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -9,11 +9,7 @@ import com.example.taskjoy.model.TaskJoyIcon
 import com.example.taskjoy.repository.RepositoryService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
 import java.util.Calendar
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class CreateRoutineViewModel(
     private val repository: RepositoryService = RepositoryService()
@@ -37,61 +33,32 @@ class CreateRoutineViewModel(
             _isLoading.value = true
             _error.value = null
 
-            try {
-                val result = withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<RoutineTemplate> { continuation ->
-                        repository.getRoutineTemplate(
-                            routineId = routineId,
-                            endUserId = endUserId,
-                            currentUserId = currentUserId,
-                            onSuccess = { template ->
-                                continuation.resume(template)
-                            },
-                            onFailure = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+            repository.getRoutineTemplate(routineId, endUserId, currentUserId).fold(
+                onSuccess = { template ->
+                    _routineTemplate.value = template
+                    _isLoading.value = false
+                },
+                onFailure = { e ->
+                    _error.value = e.message ?: "Error loading routine template"
+                    _isLoading.value = false
                 }
-                _routineTemplate.value = result
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Error loading routine template"
-            } finally {
-                _isLoading.value = false
-            }
+            )
         }
     }
 
     fun checkParentPermission(endUserId: String, currentUserId: String): LiveData<Boolean> {
         val result = MutableLiveData<Boolean>()
-
         viewModelScope.launch {
-            _isLoading.value = true
-
-            try {
-                val hasPermission = withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Boolean> { continuation ->
-                        repository.checkParentPermission(
-                            endUserId = endUserId,
-                            currentUserId = currentUserId,
-                            onSuccess = { hasPermission ->
-                                continuation.resume(hasPermission)
-                            },
-                            onFailure = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+            repository.checkParentPermission(endUserId, currentUserId).fold(
+                onSuccess = { hasPermission ->
+                    result.value = hasPermission
+                },
+                onFailure = { e ->
+                    _error.value = e.message ?: "Error checking permissions"
+                    result.value = false
                 }
-                result.value = hasPermission
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Error checking permissions"
-                result.value = false
-            } finally {
-                _isLoading.value = false
-            }
+            )
         }
-
         return result
     }
 
@@ -109,32 +76,19 @@ class CreateRoutineViewModel(
             _error.value = null
             _saveSuccess.value = false
 
-            try {
-                withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Unit> { continuation ->
-                        repository.saveRoutine(
-                            routineId = routineId,
-                            dailyRoutineId = dailyRoutineId,
-                            endUserId = endUserId,
-                            name = name,
-                            icon = icon,
-                            currentUserId = currentUserId,
-                            selectedDate = selectedDate,
-                            onSuccess = {
-                                continuation.resume(Unit)
-                            },
-                            onFailure = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+            repository.saveRoutine(
+                routineId, dailyRoutineId, endUserId, name, icon,
+                currentUserId, selectedDate
+            ).fold(
+                onSuccess = {
+                    _saveSuccess.value = true
+                    _isLoading.value = false
+                },
+                onFailure = { e ->
+                    _error.value = e.message ?: "Error saving routine"
+                    _isLoading.value = false
                 }
-                _saveSuccess.value = true
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Error saving routine"
-            } finally {
-                _isLoading.value = false
-            }
+            )
         }
     }
 

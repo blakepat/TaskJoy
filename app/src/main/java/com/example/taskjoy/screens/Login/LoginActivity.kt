@@ -45,6 +45,8 @@ class LoginActivity : AppCompatActivity() {
             if (success) {
                 Snackbar.make(binding.root, "Login Successful", Snackbar.LENGTH_SHORT).show()
                 val intent = Intent(this@LoginActivity, MainActivity::class.java)
+
+
                 startActivity(intent)
             }
         }

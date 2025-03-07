@@ -8,10 +8,7 @@ import com.example.taskjoy.adapters.UserManagementAdapter.UserItem
 import com.example.taskjoy.repository.RepositoryService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class UserManagementViewModel(
     private val repository: RepositoryService = RepositoryService()
@@ -40,20 +37,17 @@ class UserManagementViewModel(
 
             try {
                 val result = withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Boolean> { continuation ->
-                        repository.checkUserRole(
-                            endUserId = endUserId,
-                            currentUserId = currentUserId,
-                            onSuccess = { isParent ->
-                                continuation.resume(isParent)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                    repository.checkUserRole(endUserId, currentUserId)
                 }
-                _isParent.value = result
+
+                result.fold(
+                    onSuccess = { isParent ->
+                        _isParent.value = isParent
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Error checking user role"
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error checking user role"
             } finally {
@@ -69,19 +63,17 @@ class UserManagementViewModel(
 
             try {
                 val result = withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<List<UserItem>> { continuation ->
-                        repository.loadUserAccess(
-                            endUserId = endUserId,
-                            onSuccess = { users ->
-                                continuation.resume(users)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                    repository.loadUserAccess(endUserId)
                 }
-                _users.value = result
+
+                result.fold(
+                    onSuccess = { userList ->
+                        _users.value = userList
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Error loading users"
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error loading users"
             } finally {
@@ -97,24 +89,20 @@ class UserManagementViewModel(
             _removeSuccess.value = false
 
             try {
-                withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Unit> { continuation ->
-                        repository.removeUserAccess(
-                            endUserId = endUserId,
-                            userId = userId,
-                            onSuccess = {
-                                continuation.resume(Unit)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                val result = withContext(Dispatchers.IO) {
+                    repository.removeUserAccess(endUserId, userId)
                 }
-                _removeSuccess.value = true
 
-                // Reload the user list
-                loadUsers(endUserId)
+                result.fold(
+                    onSuccess = {
+                        _removeSuccess.value = true
+                        // Reload the user list
+                        loadUsers(endUserId)
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Error removing user"
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error removing user"
             } finally {

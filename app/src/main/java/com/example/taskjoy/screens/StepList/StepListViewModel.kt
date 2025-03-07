@@ -1,4 +1,4 @@
-package com.example.taskjoy.screens.StepList
+package com.example.taskjoy.viewmodels
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -9,10 +9,6 @@ import com.example.taskjoy.model.Step
 import com.example.taskjoy.repository.RepositoryService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
-import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class StepListViewModel(
     private val repository: RepositoryService = RepositoryService()
@@ -39,29 +35,17 @@ class StepListViewModel(
             _isLoading.value = true
             _error.value = null
 
-            try {
-                withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Pair<DailyRoutine, List<Step>>> { continuation ->
-                        repository.getRoutineWithSteps(
-                            endUserId = endUserId,
-                            routineId = routineId,
-                            onSuccess = { routine, steps ->
-                                continuation.resume(Pair(routine, steps))
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
-                }.let { (routine, steps) ->
+            repository.getRoutineWithSteps(endUserId, routineId).fold(
+                onSuccess = { (routine, steps) ->
                     _routine.value = routine
                     _steps.value = steps
+                    _isLoading.value = false
+                },
+                onFailure = { e ->
+                    _error.value = e.message ?: "Error fetching routine and steps"
+                    _isLoading.value = false
                 }
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Error fetching routine and steps"
-            } finally {
-                _isLoading.value = false
-            }
+            )
         }
     }
 
@@ -71,28 +55,16 @@ class StepListViewModel(
             _error.value = null
             _saveOrderSuccess.value = false
 
-            try {
-                withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Unit> { continuation ->
-                        repository.saveStepOrder(
-                            endUserId = endUserId,
-                            routineId = routineId,
-                            steps = steps,
-                            onSuccess = {
-                                continuation.resume(Unit)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+            repository.saveStepOrder(endUserId, routineId, steps).fold(
+                onSuccess = {
+                    _saveOrderSuccess.value = true
+                    _isLoading.value = false
+                },
+                onFailure = { e ->
+                    _error.value = e.message ?: "Error saving step order"
+                    _isLoading.value = false
                 }
-                _saveOrderSuccess.value = true
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Error saving step order"
-            } finally {
-                _isLoading.value = false
-            }
+            )
         }
     }
 
@@ -101,29 +73,17 @@ class StepListViewModel(
             _isLoading.value = true
             _error.value = null
 
-            try {
-                withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Unit> { continuation ->
-                        repository.updateRemainingStepsOrder(
-                            endUserId = endUserId,
-                            routineId = routineId,
-                            steps = steps,
-                            onSuccess = {
-                                continuation.resume(Unit)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+            repository.updateRemainingStepsOrder(endUserId, routineId, steps).fold(
+                onSuccess = {
+                    // Update local list to ensure UI is consistent
+                    _steps.value = steps
+                    _isLoading.value = false
+                },
+                onFailure = { e ->
+                    _error.value = e.message ?: "Error updating step order"
+                    _isLoading.value = false
                 }
-                // Update local list to ensure UI is consistent
-                _steps.value = steps
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Error updating step order"
-            } finally {
-                _isLoading.value = false
-            }
+            )
         }
     }
 
@@ -132,30 +92,17 @@ class StepListViewModel(
             _isLoading.value = true
             _error.value = null
 
-            try {
-                withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Unit> { continuation ->
-                        repository.deleteStep(
-                            endUserId = endUserId,
-                            routineId = routineId,
-                            step = step,
-                            onSuccess = {
-                                continuation.resume(Unit)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+            repository.deleteStep(endUserId, routineId, step).fold(
+                onSuccess = {
+                    // Update local list after successful deletion
+                    _steps.value = _steps.value?.filter { it.id != step.id }
+                    _isLoading.value = false
+                },
+                onFailure = { e ->
+                    _error.value = e.message ?: "Error deleting step"
+                    _isLoading.value = false
                 }
-
-                // Update local list after successful deletion
-                _steps.value = _steps.value?.filter { it.id != step.id }
-            } catch (e: Exception) {
-                _error.value = e.message ?: "Error deleting step"
-            } finally {
-                _isLoading.value = false
-            }
+            )
         }
     }
 

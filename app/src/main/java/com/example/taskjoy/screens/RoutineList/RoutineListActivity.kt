@@ -17,6 +17,7 @@ import com.example.taskjoy.adapters.RoutineClickListener
 import com.example.taskjoy.databinding.ActivityRoutineListBinding
 import com.example.taskjoy.model.DailyRoutine
 import com.example.taskjoy.screens.StepList.StepListActivity
+import com.example.taskjoy.viewmodels.RoutineListViewModel
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth

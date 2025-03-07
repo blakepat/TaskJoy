@@ -12,75 +12,63 @@ interface StepRepository {
     /**
      * Get a routine with its steps
      */
-    fun getRoutineWithSteps(
+    suspend fun getRoutineWithSteps(
         endUserId: String,
-        routineId: String,
-        onSuccess: (DailyRoutine, List<Step>) -> Unit,
-        onError: (Exception) -> Unit
-    )
+        routineId: String
+    ): Result<Pair<DailyRoutine, List<Step>>>
 
     /**
      * Save the order of steps
      */
-    fun saveStepOrder(
+    suspend fun saveStepOrder(
         endUserId: String,
         routineId: String,
-        steps: List<Step>,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    )
+        steps: List<Step>
+    ): Result<Unit>
 
     /**
      * Update the order of the remaining steps after deletion
      */
-    fun updateRemainingStepsOrder(
+    suspend fun updateRemainingStepsOrder(
         endUserId: String,
         routineId: String,
-        steps: List<Step>,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    )
+        steps: List<Step>
+    ): Result<Unit>
 
     /**
      * Delete a step
      */
-    fun deleteStep(
+    suspend fun deleteStep(
         endUserId: String,
         routineId: String,
-        step: Step,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    )
+        step: Step
+    ): Result<Unit>
 
     /**
      * Load an existing step for editing
      */
-    fun getStep(
+    suspend fun getStep(
         endUserId: String,
         routineId: String,
-        stepId: String,
-        onSuccess: (Step) -> Unit,
-        onError: (Exception) -> Unit
-    )
+        stepId: String
+    ): Result<Step>
 
     /**
      * Create a new step
      */
-    fun createStep(
+    suspend fun createStep(
         endUserId: String,
         routineId: String,
         name: String,
         description: String,
         icon: TaskJoyIcon,
-        customIconPath: String?,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    )
+        customIconPath: String?
+    ): Result<Unit>
 
     /**
      * Update an existing step
      */
-    fun updateStep(
+    suspend fun updateStep(
         endUserId: String,
         routineId: String,
         stepId: String,
@@ -88,52 +76,42 @@ interface StepRepository {
         name: String,
         description: String,
         icon: TaskJoyIcon,
-        customIconPath: String?,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    )
+        customIconPath: String?
+    ): Result<Unit>
 
     /**
      * Mark a step as complete
      */
-    fun markStepAsComplete(
+    suspend fun markStepAsComplete(
         endUserId: String,
         routineId: String,
-        stepId: String,
-        onSuccess: (Timestamp) -> Unit,
-        onError: (Exception) -> Unit
-    )
+        stepId: String
+    ): Result<Timestamp>
 
     /**
      * Mark a step as incomplete
      */
-    fun markStepAsIncomplete(
+    suspend fun markStepAsIncomplete(
         endUserId: String,
         routineId: String,
-        stepId: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    )
+        stepId: String
+    ): Result<Unit>
 
     /**
      * Save notes for a step
      */
-    fun saveStepNotes(
+    suspend fun saveStepNotes(
         endUserId: String,
         routineId: String,
         stepId: String,
-        notes: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    )
+        notes: String
+    ): Result<Unit>
 
     /**
      * Mark all steps in a routine as complete
      */
-    fun completeAllSteps(
+    suspend fun completeAllSteps(
         endUserId: String,
-        routineId: String,
-        onSuccess: (Timestamp) -> Unit,
-        onError: (Exception) -> Unit
-    )
+        routineId: String
+    ): Result<Timestamp>
 }

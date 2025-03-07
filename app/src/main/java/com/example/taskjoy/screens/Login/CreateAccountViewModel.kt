@@ -7,10 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.taskjoy.repository.AuthService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class CreateAccountViewModel(
     private val authService: AuthService = AuthService()
@@ -50,22 +47,19 @@ class CreateAccountViewModel(
             _error.value = null
 
             try {
-                withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Unit> { continuation ->
-                        authService.createAccount(
-                            email = email,
-                            name = name,
-                            password = password,
-                            onSuccess = {
-                                continuation.resume(Unit)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                val result = withContext(Dispatchers.IO) {
+                    authService.createAccount(email, name, password)
                 }
-                _createAccountSuccess.value = true
+
+                result.fold(
+                    onSuccess = {
+                        _createAccountSuccess.value = true
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Failed to create account"
+                        _createAccountSuccess.value = false
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Failed to create account"
                 _createAccountSuccess.value = false

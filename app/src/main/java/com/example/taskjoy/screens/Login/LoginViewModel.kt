@@ -7,10 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.taskjoy.repository.AuthService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class LoginViewModel(
     private val authService: AuthService = AuthService()
@@ -32,21 +29,19 @@ class LoginViewModel(
             _error.value = null
 
             try {
-                withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Unit> { continuation ->
-                        authService.login(
-                            email = email,
-                            password = password,
-                            onSuccess = {
-                                continuation.resume(Unit)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                val result = withContext(Dispatchers.IO) {
+                    authService.login(email, password)
                 }
-                _loginSuccess.value = true
+
+                result.fold(
+                    onSuccess = {
+                        _loginSuccess.value = true
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Login failed"
+                        _loginSuccess.value = false
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Login failed"
                 _loginSuccess.value = false

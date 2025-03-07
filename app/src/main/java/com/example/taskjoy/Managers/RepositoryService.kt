@@ -22,155 +22,109 @@ class RepositoryService(
     // ====== USER OPERATIONS ======
 
     // Basic user operations
-    fun getChildren(
-        parentId: String,
-        onSuccess: (List<EndUser>) -> Unit,
-        onError: (Exception) -> Unit
-    ) = userRepository.getChildren(parentId, onSuccess, onError)
+    suspend fun getChildren(parentId: String): Result<List<EndUser>> =
+        userRepository.getChildren(parentId)
 
-    fun deleteEndUser(
-        parentId: String,
-        endUserId: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = userRepository.deleteEndUser(parentId, endUserId, onSuccess, onError)
+    suspend fun deleteEndUser(parentId: String, endUserId: String): Result<Unit> =
+        userRepository.deleteEndUser(parentId, endUserId)
 
-    fun checkParentPermission(
-        endUserId: String,
-        currentUserId: String,
-        onSuccess: (Boolean) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) = userRepository.checkParentPermission(endUserId, currentUserId, onSuccess, onFailure)
+    suspend fun checkParentPermission(endUserId: String, currentUserId: String): Result<Boolean> =
+        userRepository.checkParentPermission(endUserId, currentUserId)
 
     // User management operations
-    fun checkUserRole(
-        endUserId: String,
-        currentUserId: String,
-        onSuccess: (Boolean) -> Unit,
-        onError: (Exception) -> Unit
-    ) = userRepository.checkUserRole(endUserId, currentUserId, onSuccess, onError)
+    suspend fun checkUserRole(endUserId: String, currentUserId: String): Result<Boolean> =
+        userRepository.checkUserRole(endUserId, currentUserId)
 
-    fun loadUserAccess(
-        endUserId: String,
-        onSuccess: (List<UserManagementAdapter.UserItem>) -> Unit,
-        onError: (Exception) -> Unit
-    ) = userRepository.loadUserAccess(endUserId, onSuccess, onError)
+    suspend fun loadUserAccess(endUserId: String): Result<List<UserManagementAdapter.UserItem>> =
+        userRepository.loadUserAccess(endUserId)
 
-    fun removeUserAccess(
-        endUserId: String,
-        userId: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = userRepository.removeUserAccess(endUserId, userId, onSuccess, onError)
+    suspend fun removeUserAccess(endUserId: String, userId: String): Result<Unit> =
+        userRepository.removeUserAccess(endUserId, userId)
 
     // ====== ROUTINE OPERATIONS ======
 
-    fun createDailyRoutinesIfNeeded(
-        endUserId: String,
-        date: Calendar,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = routineRepository.createDailyRoutinesIfNeeded(endUserId, date, onSuccess, onError)
+    suspend fun createDailyRoutinesIfNeeded(endUserId: String, date: Calendar): Result<Unit> =
+        routineRepository.createDailyRoutinesIfNeeded(endUserId, date)
 
-    fun getDailyRoutines(
-        endUserId: String,
-        date: Calendar,
-        onSuccess: (List<DailyRoutine>) -> Unit,
-        onError: (Exception) -> Unit
-    ) = routineRepository.getDailyRoutines(endUserId, date, onSuccess, onError)
+    suspend fun getDailyRoutines(endUserId: String, date: Calendar): Result<List<DailyRoutine>> =
+        routineRepository.getDailyRoutines(endUserId, date)
 
-    fun getAllEndUserDailyRoutines(
-        parentId: String,
-        date: Calendar,
-        onSuccess: (List<DailyRoutine>) -> Unit,
-        onError: (Exception) -> Unit
-    ) = routineRepository.getAllEndUserDailyRoutines(parentId, date, onSuccess, onError)
+    suspend fun getAllEndUserDailyRoutines(parentId: String, date: Calendar): Result<List<DailyRoutine>> =
+        routineRepository.getAllEndUserDailyRoutines(parentId, date)
 
-    fun deleteRoutine(
-        endUserId: String,
-        routine: DailyRoutine,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = routineRepository.deleteRoutine(endUserId, routine, onSuccess, onError)
+    suspend fun deleteRoutine(endUserId: String, routine: DailyRoutine): Result<Unit> =
+        routineRepository.deleteRoutine(endUserId, routine)
 
     // ====== TEMPLATE OPERATIONS ======
 
-    fun getRoutineTemplate(
+    suspend fun getRoutineTemplate(
         routineId: String,
         endUserId: String,
-        currentUserId: String,
-        onSuccess: (RoutineTemplate) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) = templateRepository.getRoutineTemplate(routineId, endUserId, currentUserId, onSuccess, onFailure)
+        currentUserId: String
+    ): Result<RoutineTemplate> =
+        templateRepository.getRoutineTemplate(routineId, endUserId, currentUserId)
 
-    fun saveRoutine(
+    suspend fun saveRoutine(
         routineId: String?,
         dailyRoutineId: String?,
         endUserId: String,
         name: String,
         icon: TaskJoyIcon,
         currentUserId: String,
-        selectedDate: Calendar,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
-    ) = templateRepository.saveRoutine(
-        routineId, dailyRoutineId, endUserId, name, icon,
-        currentUserId, selectedDate, onSuccess, onFailure
-    )
+        selectedDate: Calendar
+    ): Result<Unit> =
+        templateRepository.saveRoutine(
+            routineId, dailyRoutineId, endUserId, name, icon,
+            currentUserId, selectedDate
+        )
 
     // ====== STEP OPERATIONS ======
 
-    fun getRoutineWithSteps(
+    suspend fun getRoutineWithSteps(
+        endUserId: String,
+        routineId: String
+    ): Result<Pair<DailyRoutine, List<Step>>> =
+        stepRepository.getRoutineWithSteps(endUserId, routineId)
+
+    suspend fun saveStepOrder(
         endUserId: String,
         routineId: String,
-        onSuccess: (DailyRoutine, List<Step>) -> Unit,
-        onError: (Exception) -> Unit
-    ) = stepRepository.getRoutineWithSteps(endUserId, routineId, onSuccess, onError)
+        steps: List<Step>
+    ): Result<Unit> =
+        stepRepository.saveStepOrder(endUserId, routineId, steps)
 
-    fun saveStepOrder(
+    suspend fun updateRemainingStepsOrder(
         endUserId: String,
         routineId: String,
-        steps: List<Step>,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = stepRepository.saveStepOrder(endUserId, routineId, steps, onSuccess, onError)
+        steps: List<Step>
+    ): Result<Unit> =
+        stepRepository.updateRemainingStepsOrder(endUserId, routineId, steps)
 
-    fun updateRemainingStepsOrder(
+    suspend fun deleteStep(
         endUserId: String,
         routineId: String,
-        steps: List<Step>,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = stepRepository.updateRemainingStepsOrder(endUserId, routineId, steps, onSuccess, onError)
+        step: Step
+    ): Result<Unit> =
+        stepRepository.deleteStep(endUserId, routineId, step)
 
-    fun deleteStep(
+    suspend fun getStep(
         endUserId: String,
         routineId: String,
-        step: Step,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = stepRepository.deleteStep(endUserId, routineId, step, onSuccess, onError)
+        stepId: String
+    ): Result<Step> =
+        stepRepository.getStep(endUserId, routineId, stepId)
 
-    fun getStep(
-        endUserId: String,
-        routineId: String,
-        stepId: String,
-        onSuccess: (Step) -> Unit,
-        onError: (Exception) -> Unit
-    ) = stepRepository.getStep(endUserId, routineId, stepId, onSuccess, onError)
-
-    fun createStep(
+    suspend fun createStep(
         endUserId: String,
         routineId: String,
         name: String,
         description: String,
         icon: TaskJoyIcon,
-        customIconPath: String?,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = stepRepository.createStep(endUserId, routineId, name, description, icon, customIconPath, onSuccess, onError)
+        customIconPath: String?
+    ): Result<Unit> =
+        stepRepository.createStep(endUserId, routineId, name, description, icon, customIconPath)
 
-    fun updateStep(
+    suspend fun updateStep(
         endUserId: String,
         routineId: String,
         stepId: String,
@@ -178,44 +132,38 @@ class RepositoryService(
         name: String,
         description: String,
         icon: TaskJoyIcon,
-        customIconPath: String?,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = stepRepository.updateStep(
-        endUserId, routineId, stepId, templateStepId,
-        name, description, icon, customIconPath,
-        onSuccess, onError
-    )
+        customIconPath: String?
+    ): Result<Unit> =
+        stepRepository.updateStep(
+            endUserId, routineId, stepId, templateStepId,
+            name, description, icon, customIconPath
+        )
 
-    fun markStepAsComplete(
+    suspend fun markStepAsComplete(
+        endUserId: String,
+        routineId: String,
+        stepId: String
+    ): Result<Timestamp> =
+        stepRepository.markStepAsComplete(endUserId, routineId, stepId)
+
+    suspend fun markStepAsIncomplete(
+        endUserId: String,
+        routineId: String,
+        stepId: String
+    ): Result<Unit> =
+        stepRepository.markStepAsIncomplete(endUserId, routineId, stepId)
+
+    suspend fun saveStepNotes(
         endUserId: String,
         routineId: String,
         stepId: String,
-        onSuccess: (Timestamp) -> Unit,
-        onError: (Exception) -> Unit
-    ) = stepRepository.markStepAsComplete(endUserId, routineId, stepId, onSuccess, onError)
+        notes: String
+    ): Result<Unit> =
+        stepRepository.saveStepNotes(endUserId, routineId, stepId, notes)
 
-    fun markStepAsIncomplete(
+    suspend fun completeAllSteps(
         endUserId: String,
-        routineId: String,
-        stepId: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = stepRepository.markStepAsIncomplete(endUserId, routineId, stepId, onSuccess, onError)
-
-    fun saveStepNotes(
-        endUserId: String,
-        routineId: String,
-        stepId: String,
-        notes: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = stepRepository.saveStepNotes(endUserId, routineId, stepId, notes, onSuccess, onError)
-
-    fun completeAllSteps(
-        endUserId: String,
-        routineId: String,
-        onSuccess: (Timestamp) -> Unit,
-        onError: (Exception) -> Unit
-    ) = stepRepository.completeAllSteps(endUserId, routineId, onSuccess, onError)
+        routineId: String
+    ): Result<Timestamp> =
+        stepRepository.completeAllSteps(endUserId, routineId)
 }

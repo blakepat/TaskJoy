@@ -20,6 +20,7 @@ import com.example.taskjoy.adapters.ChildClickListener
 import com.example.taskjoy.databinding.ActivityMainBinding
 import com.example.taskjoy.model.EndUser
 import com.example.taskjoy.screens.RoutineList.RoutineListActivity
+import com.example.taskjoy.viewmodels.MainViewModel
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth

@@ -18,6 +18,7 @@ import com.example.taskjoy.adapters.StepItemTouchHelperCallback
 import com.example.taskjoy.databinding.StepListScreenBinding
 import com.example.taskjoy.model.Step
 import com.example.taskjoy.screens.StepDetails.StepDetailsActivity
+import com.example.taskjoy.viewmodels.StepListViewModel
 import com.google.android.material.snackbar.Snackbar
 
 class StepListActivity : AppCompatActivity(), StepClickListener {

@@ -7,23 +7,19 @@ interface AuthRepository {
     /**
      * Sign in with email and password
      */
-    fun login(
+    suspend fun login(
         email: String,
-        password: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    )
+        password: String
+    ): Result<Unit>
 
     /**
      * Create a new user account with email and password
      */
-    fun createAccount(
+    suspend fun createAccount(
         email: String,
         name: String,
-        password: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    )
+        password: String
+    ): Result<Unit>
 
     /**
      * Check if a user is currently authenticated

@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.example.taskjoy.adapters.IconAdapter
 import com.example.taskjoy.databinding.CreateRoutineScreenBinding
 import com.example.taskjoy.model.TaskJoyIcon
+import com.example.taskjoy.viewmodels.CreateRoutineViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
@@ -17,7 +18,7 @@ import java.util.Calendar
 
 class CreateRoutineActivity : AppCompatActivity() {
     private lateinit var binding: CreateRoutineScreenBinding
-    private lateinit var auth: FirebaseAuth
+    private val auth: FirebaseAuth by lazy { Firebase.auth }
     private var routineId: String? = null
     private var dailyRoutineId: String? = null
     private var endUserId: String? = null
@@ -31,8 +32,6 @@ class CreateRoutineActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = CreateRoutineScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        auth = Firebase.auth
 
         // Get routineId, endUser and selectedDate from intent
         routineId = intent.getStringExtra("routineId")

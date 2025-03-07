@@ -9,7 +9,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.tasks.await
 import java.util.Calendar
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Firebase implementation of the TemplateRepository interface
@@ -20,164 +22,166 @@ class FirebaseTemplateRepository(
 ) : TemplateRepository {
     private val TAG = "FirebaseTemplateRepo"
 
-    override fun getRoutineTemplate(
+    override suspend fun getRoutineTemplate(
         routineId: String,
         endUserId: String,
-        currentUserId: String,
-        onSuccess: (RoutineTemplate) -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        db.collection("routineTemplates")
-            .document(routineId)
-            .get()
-            .addOnSuccessListener { document ->
-                val routine = document.toObject(RoutineTemplate::class.java)
-                val createdBy = document.getString("createdBy")
+        currentUserId: String
+    ): Result<RoutineTemplate> {
+        return try {
+            val document = db.collection("routineTemplates")
+                .document(routineId)
+                .get()
+                .await()
 
-                Log.d(TAG, "Loaded Routine - CreatedBy: $createdBy, EndUserId: $endUserId")
+            val routine = document.toObject(RoutineTemplate::class.java)
+            val createdBy = document.getString("createdBy")
 
-                // If created by current user, allow edit directly
-                if (createdBy == currentUserId) {
-                    routine?.let { onSuccess(it) }
-                    return@addOnSuccessListener
-                }
+            Log.d(TAG, "Loaded Routine - CreatedBy: $createdBy, EndUserId: $endUserId")
 
-                // Otherwise check parent permissions
-                userRepository.checkParentPermission(
-                    endUserId = endUserId,
-                    currentUserId = currentUserId,
-                    onSuccess = { isParent ->
-                        if (isParent && routine != null) {
-                            onSuccess(routine)
-                        } else {
-                            onFailure(Exception("Permission denied: Not a parent or routine not found"))
-                        }
-                    },
-                    onFailure = { error ->
-                        onFailure(error)
+            // If created by current user, allow edit directly
+            if (createdBy == currentUserId) {
+                routine?.let {
+                    return Result.success(it)
+                } ?: return Result.failure(Exception("Routine not found"))
+            }
+
+            // Otherwise check parent permissions
+            val permissionResult = userRepository.checkParentPermission(endUserId, currentUserId)
+
+            permissionResult.fold(
+                onSuccess = { isParent ->
+                    if (isParent && routine != null) {
+                        Result.success(routine)
+                    } else {
+                        Result.failure(Exception("Permission denied: Not a parent or routine not found"))
                     }
-                )
-            }
-            .addOnFailureListener { error ->
-                Log.e(TAG, "Error loading routine", error)
-                onFailure(error)
-            }
-    }
-
-    override fun saveRoutine(
-        routineId: String?,
-        dailyRoutineId: String?,
-        endUserId: String,
-        name: String,
-        icon: TaskJoyIcon,
-        currentUserId: String,
-        selectedDate: Calendar,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        // First check parent permission
-        userRepository.checkParentPermission(
-            endUserId = endUserId,
-            currentUserId = currentUserId,
-            onSuccess = { isParent ->
-                if (isParent) {
-                    performRoutineSave(
-                        routineId = routineId,
-                        dailyRoutineId = dailyRoutineId,
-                        endUserId = endUserId,
-                        name = name,
-                        icon = icon,
-                        currentUserId = currentUserId,
-                        selectedDate = selectedDate,
-                        onSuccess = onSuccess,
-                        onFailure = onFailure
-                    )
-                } else {
-                    onFailure(Exception("Permission denied: Only parents can create/edit routines"))
+                },
+                onFailure = { error ->
+                    Result.failure(error)
                 }
-            },
-            onFailure = { error ->
-                onFailure(error)
-            }
-        )
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading routine", e)
+            if (e is CancellationException) throw e
+            Result.failure(e)
+        }
     }
 
-    private fun performRoutineSave(
+    override suspend fun saveRoutine(
         routineId: String?,
         dailyRoutineId: String?,
         endUserId: String,
         name: String,
         icon: TaskJoyIcon,
         currentUserId: String,
-        selectedDate: Calendar,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
-    ) {
-        val batch = db.batch()
+        selectedDate: Calendar
+    ): Result<Unit> {
+        return try {
+            // First check parent permission
+            val permissionResult = userRepository.checkParentPermission(endUserId, currentUserId)
 
-        // Create or update routine template
-        val routineTemplatesCollection = db.collection("routineTemplates")
-        val routineDoc = if (routineId != null) {
-            routineTemplatesCollection.document(routineId)
-        } else {
-            routineTemplatesCollection.document()
+            permissionResult.fold(
+                onSuccess = { isParent ->
+                    if (isParent) {
+                        performRoutineSave(
+                            routineId = routineId,
+                            dailyRoutineId = dailyRoutineId,
+                            endUserId = endUserId,
+                            name = name,
+                            icon = icon,
+                            currentUserId = currentUserId,
+                            selectedDate = selectedDate
+                        )
+                    } else {
+                        Result.failure(Exception("Permission denied: Only parents can create/edit routines"))
+                    }
+                },
+                onFailure = { error ->
+                    Result.failure(error)
+                }
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving routine", e)
+            if (e is CancellationException) throw e
+            Result.failure(e)
         }
+    }
 
-        val routineTemplate = hashMapOf(
-            "name" to name,
-            "image" to icon.name,
-            "steps" to mutableListOf<String>(),
-            "createdBy" to currentUserId,
-            "createdAt" to Timestamp.now(),
-            "endUserId" to endUserId
-        )
+    private suspend fun performRoutineSave(
+        routineId: String?,
+        dailyRoutineId: String?,
+        endUserId: String,
+        name: String,
+        icon: TaskJoyIcon,
+        currentUserId: String,
+        selectedDate: Calendar
+    ): Result<Unit> {
+        return try {
+            val batch = db.batch()
 
-        batch.set(routineDoc, routineTemplate, SetOptions.merge())
+            // Create or update routine template
+            val routineTemplatesCollection = db.collection("routineTemplates")
+            val routineDoc = if (routineId != null) {
+                routineTemplatesCollection.document(routineId)
+            } else {
+                routineTemplatesCollection.document()
+            }
 
-        // Handle daily routine update
-        if (dailyRoutineId != null) {
-            // If we have a dailyRoutineId, update that specific daily routine
-            val dailyRoutineRef = db.collection("endUser")
-                .document(endUserId)
-                .collection("dailyRoutines")
-                .document(dailyRoutineId)
-
-            val dailyRoutine = hashMapOf(
+            val routineTemplate = hashMapOf(
                 "name" to name,
                 "image" to icon.name,
-                "templateId" to routineDoc.id
+                "steps" to mutableListOf<String>(),
+                "createdBy" to currentUserId,
+                "createdAt" to Timestamp.now(),
+                "endUserId" to endUserId
             )
 
-            batch.update(dailyRoutineRef, dailyRoutine as Map<String, Any>)
-        } else {
-            // For new routine, create a new daily routine
-            val dailyRoutineRef = db.collection("endUser")
-                .document(endUserId)
-                .collection("dailyRoutines")
-                .document()
+            batch.set(routineDoc, routineTemplate, SetOptions.merge())
 
-            val dailyRoutine = hashMapOf(
-                "name" to name,
-                "date" to Timestamp(selectedDate.time),
-                "image" to icon.name,
-                "completed" to false,
-                "templateId" to routineDoc.id,
-                "notes" to ""
-            )
+            // Handle daily routine update
+            if (dailyRoutineId != null) {
+                // If we have a dailyRoutineId, update that specific daily routine
+                val dailyRoutineRef = db.collection("endUser")
+                    .document(endUserId)
+                    .collection("dailyRoutines")
+                    .document(dailyRoutineId)
 
-            batch.set(dailyRoutineRef, dailyRoutine)
+                val dailyRoutine = hashMapOf(
+                    "name" to name,
+                    "image" to icon.name,
+                    "templateId" to routineDoc.id
+                )
 
-            // Only add template reference for new routines
-            val endUserRef = db.collection("endUser").document(endUserId)
-            batch.update(endUserRef, "routineTemplates", FieldValue.arrayUnion(routineDoc.id))
+                batch.update(dailyRoutineRef, dailyRoutine as Map<String, Any>)
+            } else {
+                // For new routine, create a new daily routine
+                val dailyRoutineRef = db.collection("endUser")
+                    .document(endUserId)
+                    .collection("dailyRoutines")
+                    .document()
+
+                val dailyRoutine = hashMapOf(
+                    "name" to name,
+                    "date" to Timestamp(selectedDate.time),
+                    "image" to icon.name,
+                    "completed" to false,
+                    "templateId" to routineDoc.id,
+                    "notes" to ""
+                )
+
+                batch.set(dailyRoutineRef, dailyRoutine)
+
+                // Only add template reference for new routines
+                val endUserRef = db.collection("endUser").document(endUserId)
+                batch.update(endUserRef, "routineTemplates", FieldValue.arrayUnion(routineDoc.id))
+            }
+
+            batch.commit().await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in performRoutineSave", e)
+            if (e is CancellationException) throw e
+            Result.failure(e)
         }
-
-        batch.commit()
-            .addOnSuccessListener {
-                onSuccess()
-            }
-            .addOnFailureListener { error ->
-                onFailure(error)
-            }
     }
 }

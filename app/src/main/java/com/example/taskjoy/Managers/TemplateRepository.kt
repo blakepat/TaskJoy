@@ -11,26 +11,22 @@ interface TemplateRepository {
     /**
      * Get a routine template, checking permissions
      */
-    fun getRoutineTemplate(
+    suspend fun getRoutineTemplate(
         routineId: String,
         endUserId: String,
-        currentUserId: String,
-        onSuccess: (RoutineTemplate) -> Unit,
-        onFailure: (Exception) -> Unit
-    )
+        currentUserId: String
+    ): Result<RoutineTemplate>
 
     /**
      * Save or update a routine template and its corresponding daily routine
      */
-    fun saveRoutine(
+    suspend fun saveRoutine(
         routineId: String?,
         dailyRoutineId: String?,
         endUserId: String,
         name: String,
         icon: TaskJoyIcon,
         currentUserId: String,
-        selectedDate: Calendar,
-        onSuccess: () -> Unit,
-        onFailure: (Exception) -> Unit
-    )
+        selectedDate: Calendar
+    ): Result<Unit>
 }

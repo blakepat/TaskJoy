@@ -1,4 +1,4 @@
-package com.example.taskjoy.screens.HomePage
+package com.example.taskjoy.viewmodels
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -8,10 +8,7 @@ import com.example.taskjoy.model.EndUser
 import com.example.taskjoy.repository.RepositoryService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class MainViewModel(
     private val repository: RepositoryService = RepositoryService()
@@ -34,19 +31,17 @@ class MainViewModel(
 
             try {
                 val result = withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<List<EndUser>> { continuation ->
-                        repository.getChildren(
-                            parentId = parentId,
-                            onSuccess = { childList ->
-                                continuation.resume(childList)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                    repository.getChildren(parentId)
                 }
-                _children.value = result
+
+                result.fold(
+                    onSuccess = { childList ->
+                        _children.value = childList
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Unknown error occurred"
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Unknown error occurred"
             } finally {
@@ -61,23 +56,19 @@ class MainViewModel(
             _error.value = null
 
             try {
-                withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Unit> { continuation ->
-                        repository.deleteEndUser(
-                            parentId = parentId,
-                            endUserId = endUserId,
-                            onSuccess = {
-                                continuation.resume(Unit)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                val result = withContext(Dispatchers.IO) {
+                    repository.deleteEndUser(parentId, endUserId)
                 }
 
-                // Refresh the children list after successful deletion
-                getChildren(parentId)
+                result.fold(
+                    onSuccess = {
+                        // Refresh the children list after successful deletion
+                        getChildren(parentId)
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Error deleting user"
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error deleting user"
             } finally {

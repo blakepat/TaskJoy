@@ -1,4 +1,4 @@
-package com.example.taskjoy.screens.StepDetails
+package com.example.taskjoy.viewmodels
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -9,10 +9,7 @@ import com.example.taskjoy.repository.RepositoryService
 import com.google.firebase.Timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class StepDetailsViewModel(
     private val repository: RepositoryService = RepositoryService()
@@ -41,21 +38,17 @@ class StepDetailsViewModel(
 
             try {
                 val result = withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Step> { continuation ->
-                        repository.getStep(
-                            endUserId = endUserId,
-                            routineId = routineId,
-                            stepId = stepId,
-                            onSuccess = { step ->
-                                continuation.resume(step)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                    repository.getStep(endUserId, routineId, stepId)
                 }
-                _step.value = result
+
+                result.fold(
+                    onSuccess = { step ->
+                        _step.value = step
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Error loading step"
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error loading step"
             } finally {
@@ -70,24 +63,19 @@ class StepDetailsViewModel(
             _error.value = null
 
             try {
-                val timestamp = withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Timestamp> { continuation ->
-                        repository.markStepAsComplete(
-                            endUserId = endUserId,
-                            routineId = routineId,
-                            stepId = stepId,
-                            onSuccess = { timestamp ->
-                                continuation.resume(timestamp)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                val result = withContext(Dispatchers.IO) {
+                    repository.markStepAsComplete(endUserId, routineId, stepId)
                 }
 
-                // Update the local step object
-                _step.value = _step.value?.copy(completed = true, completedAt = timestamp)
+                result.fold(
+                    onSuccess = { timestamp ->
+                        // Update the local step object
+                        _step.value = _step.value?.copy(completed = true, completedAt = timestamp)
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Error marking step as complete"
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error marking step as complete"
             } finally {
@@ -102,24 +90,19 @@ class StepDetailsViewModel(
             _error.value = null
 
             try {
-                withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Unit> { continuation ->
-                        repository.markStepAsIncomplete(
-                            endUserId = endUserId,
-                            routineId = routineId,
-                            stepId = stepId,
-                            onSuccess = {
-                                continuation.resume(Unit)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                val result = withContext(Dispatchers.IO) {
+                    repository.markStepAsIncomplete(endUserId, routineId, stepId)
                 }
 
-                // Update the local step object
-                _step.value = _step.value?.copy(completed = false, completedAt = null)
+                result.fold(
+                    onSuccess = {
+                        // Update the local step object
+                        _step.value = _step.value?.copy(completed = false, completedAt = null)
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Error marking step as incomplete"
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error marking step as incomplete"
             } finally {
@@ -135,26 +118,20 @@ class StepDetailsViewModel(
             _saveNotesSuccess.value = false
 
             try {
-                withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Unit> { continuation ->
-                        repository.saveStepNotes(
-                            endUserId = endUserId,
-                            routineId = routineId,
-                            stepId = stepId,
-                            notes = notes,
-                            onSuccess = {
-                                continuation.resume(Unit)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                val result = withContext(Dispatchers.IO) {
+                    repository.saveStepNotes(endUserId, routineId, stepId, notes)
                 }
 
-                // Update the local step object
-                _step.value = _step.value?.copy(notes = notes)
-                _saveNotesSuccess.value = true
+                result.fold(
+                    onSuccess = {
+                        // Update the local step object
+                        _step.value = _step.value?.copy(notes = notes)
+                        _saveNotesSuccess.value = true
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Error saving notes"
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error saving notes"
             } finally {
@@ -170,24 +147,20 @@ class StepDetailsViewModel(
             _allStepsCompleted.value = false
 
             try {
-                val timestamp = withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Timestamp> { continuation ->
-                        repository.completeAllSteps(
-                            endUserId = endUserId,
-                            routineId = routineId,
-                            onSuccess = { timestamp ->
-                                continuation.resume(timestamp)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                val result = withContext(Dispatchers.IO) {
+                    repository.completeAllSteps(endUserId, routineId)
                 }
 
-                // Update the local step object to mark it as completed
-                _step.value = _step.value?.copy(completed = true, completedAt = timestamp)
-                _allStepsCompleted.value = true
+                result.fold(
+                    onSuccess = { timestamp ->
+                        // Update the local step object to mark it as completed
+                        _step.value = _step.value?.copy(completed = true, completedAt = timestamp)
+                        _allStepsCompleted.value = true
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Error completing all steps"
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error completing all steps"
             } finally {

@@ -48,7 +48,7 @@ class IconAdapter private constructor(
 
             return IconAdapter(
                 context = context,
-                icons = filteredIcons,  // Use filtered icons
+                icons = filteredIcons,
                 selectedIcon = selectedIcon,
                 supportsCustomIcons = false
             )

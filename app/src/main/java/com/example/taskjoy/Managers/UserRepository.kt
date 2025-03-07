@@ -10,58 +10,30 @@ interface UserRepository {
     /**
      * Get all children for a parent
      */
-    fun getChildren(
-        parentId: String,
-        onSuccess: (List<EndUser>) -> Unit,
-        onError: (Exception) -> Unit
-    )
+    suspend fun getChildren(parentId: String): Result<List<EndUser>>
 
     /**
      * Delete an end user and all associated data
      */
-    fun deleteEndUser(
-        parentId: String,
-        endUserId: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    )
+    suspend fun deleteEndUser(parentId: String, endUserId: String): Result<Unit>
 
     /**
      * Check if a user has parent permissions for an end user
      */
-    fun checkParentPermission(
-        endUserId: String,
-        currentUserId: String,
-        onSuccess: (Boolean) -> Unit,
-        onFailure: (Exception) -> Unit
-    )
+    suspend fun checkParentPermission(endUserId: String, currentUserId: String): Result<Boolean>
 
     /**
      * Check if the current user is a parent of the end user
      */
-    fun checkUserRole(
-        endUserId: String,
-        currentUserId: String,
-        onSuccess: (Boolean) -> Unit,
-        onError: (Exception) -> Unit
-    )
+    suspend fun checkUserRole(endUserId: String, currentUserId: String): Result<Boolean>
 
     /**
      * Load all users (parents and chaperones) for an end user
      */
-    fun loadUserAccess(
-        endUserId: String,
-        onSuccess: (List<UserManagementAdapter.UserItem>) -> Unit,
-        onError: (Exception) -> Unit
-    )
+    suspend fun loadUserAccess(endUserId: String): Result<List<UserManagementAdapter.UserItem>>
 
     /**
      * Remove user access (parent or chaperone) from an end user
      */
-    fun removeUserAccess(
-        endUserId: String,
-        userId: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    )
+    suspend fun removeUserAccess(endUserId: String, userId: String): Result<Unit>
 }

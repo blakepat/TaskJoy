@@ -7,6 +7,8 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.tasks.await
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * Firebase implementation of the AuthRepository interface
@@ -17,61 +19,46 @@ class FirebaseAuthRepository(
 ) : AuthRepository {
     private val TAG = "FirebaseAuthRepository"
 
-    override fun login(
+    override suspend fun login(
         email: String,
-        password: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) {
-        auth.signInWithEmailAndPassword(email, password)
-            .addOnSuccessListener {
-                onSuccess()
-            }
-            .addOnFailureListener { exception ->
-                Log.e(TAG, "Login failed", exception)
-                onError(exception)
-            }
+        password: String
+    ): Result<Unit> = try {
+        auth.signInWithEmailAndPassword(email, password).await()
+        Result.success(Unit)
+    } catch (e: Exception) {
+        Log.e(TAG, "Login failed", e)
+        if (e is CancellationException) throw e
+        Result.failure(e)
     }
 
-    override fun createAccount(
+    override suspend fun createAccount(
         email: String,
         name: String,
-        password: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) {
-        auth.createUserWithEmailAndPassword(email, password)
-            .addOnSuccessListener {
-                val firebaseUser = auth.currentUser
+        password: String
+    ): Result<Unit> {
+        return try {
+            val authResult = auth.createUserWithEmailAndPassword(email, password).await()
+            val firebaseUser = authResult.user
+                ?: return Result.failure(Exception("Firebase user was null after successful authentication"))
 
-                if (firebaseUser != null) {
-                    val parent = Parent(
-                        id = firebaseUser.uid,
-                        email = email,
-                        name = name,
-                        children = listOf()
-                    )
+            val parent = Parent(
+                id = firebaseUser.uid,
+                email = email,
+                name = name,
+                children = listOf()
+            )
 
-                    db.collection("parents")
-                        .document(firebaseUser.uid)
-                        .set(parent)
-                        .addOnSuccessListener {
-                            onSuccess()
-                        }
-                        .addOnFailureListener { exception ->
-                            Log.e(TAG, "Failed to create user profile", exception)
-                            onError(exception)
-                        }
-                } else {
-                    val error = Exception("Firebase user was null after successful authentication")
-                    Log.e(TAG, error.message.toString())
-                    onError(error)
-                }
-            }
-            .addOnFailureListener { exception ->
-                Log.e(TAG, "Failed to create account", exception)
-                onError(exception)
-            }
+            db.collection("parents")
+                .document(firebaseUser.uid)
+                .set(parent)
+                .await()
+
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Create account failed", e)
+            if (e is CancellationException) throw e
+            Result.failure(e)
+        }
     }
 
     override fun isUserAuthenticated(): Boolean {

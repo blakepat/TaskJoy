@@ -1,4 +1,4 @@
-package com.example.taskjoy.screens.StepList
+package com.example.taskjoy.viewmodels
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -9,10 +9,7 @@ import com.example.taskjoy.model.TaskJoyIcon
 import com.example.taskjoy.repository.RepositoryService
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
 
 class CreateStepViewModel(
     private val repository: RepositoryService = RepositoryService()
@@ -38,21 +35,17 @@ class CreateStepViewModel(
 
             try {
                 val result = withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Step> { continuation ->
-                        repository.getStep(
-                            endUserId = endUserId,
-                            routineId = routineId,
-                            stepId = stepId,
-                            onSuccess = { step ->
-                                continuation.resume(step)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                    repository.getStep(endUserId, routineId, stepId)
                 }
-                _step.value = result
+
+                result.fold(
+                    onSuccess = { step ->
+                        _step.value = step
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Error loading step"
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error loading step"
             } finally {
@@ -75,25 +68,25 @@ class CreateStepViewModel(
             _saveSuccess.value = false
 
             try {
-                withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Unit> { continuation ->
-                        repository.createStep(
-                            endUserId = endUserId,
-                            routineId = routineId,
-                            name = name,
-                            description = description,
-                            icon = icon,
-                            customIconPath = customIconPath,
-                            onSuccess = {
-                                continuation.resume(Unit)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                val result = withContext(Dispatchers.IO) {
+                    repository.createStep(
+                        endUserId = endUserId,
+                        routineId = routineId,
+                        name = name,
+                        description = description,
+                        icon = icon,
+                        customIconPath = customIconPath
+                    )
                 }
-                _saveSuccess.value = true
+
+                result.fold(
+                    onSuccess = {
+                        _saveSuccess.value = true
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Error creating step"
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error creating step"
             } finally {
@@ -118,27 +111,27 @@ class CreateStepViewModel(
             _saveSuccess.value = false
 
             try {
-                withContext(Dispatchers.IO) {
-                    suspendCancellableCoroutine<Unit> { continuation ->
-                        repository.updateStep(
-                            endUserId = endUserId,
-                            routineId = routineId,
-                            stepId = stepId,
-                            templateStepId = templateStepId,
-                            name = name,
-                            description = description,
-                            icon = icon,
-                            customIconPath = customIconPath,
-                            onSuccess = {
-                                continuation.resume(Unit)
-                            },
-                            onError = { exception ->
-                                continuation.resumeWithException(exception)
-                            }
-                        )
-                    }
+                val result = withContext(Dispatchers.IO) {
+                    repository.updateStep(
+                        endUserId = endUserId,
+                        routineId = routineId,
+                        stepId = stepId,
+                        templateStepId = templateStepId,
+                        name = name,
+                        description = description,
+                        icon = icon,
+                        customIconPath = customIconPath
+                    )
                 }
-                _saveSuccess.value = true
+
+                result.fold(
+                    onSuccess = {
+                        _saveSuccess.value = true
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Error updating step"
+                    }
+                )
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error updating step"
             } finally {

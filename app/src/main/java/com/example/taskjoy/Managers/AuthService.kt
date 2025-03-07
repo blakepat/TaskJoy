@@ -9,23 +9,19 @@ class AuthService(
     /**
      * Sign in with email and password
      */
-    fun login(
+    suspend fun login(
         email: String,
-        password: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = authRepository.login(email, password, onSuccess, onError)
+        password: String
+    ): Result<Unit> = authRepository.login(email, password)
 
     /**
      * Create a new user account with email and password
      */
-    fun createAccount(
+    suspend fun createAccount(
         email: String,
         name: String,
-        password: String,
-        onSuccess: () -> Unit,
-        onError: (Exception) -> Unit
-    ) = authRepository.createAccount(email, name, password, onSuccess, onError)
+        password: String
+    ): Result<Unit> = authRepository.createAccount(email, name, password)
 
     /**
      * Check if a user is currently authenticated

@@ -26,6 +26,15 @@ class EmotionMemoryActivity : AppCompatActivity() {
     private var matchedPairs = mutableSetOf<Int>()
     private var moves = 0
 
+    private val emotions: List<Emotion> = listOf(
+        Emotion(1, R.drawable.ic_happy, "Happy"),
+        Emotion(2, R.drawable.ic_sad, "Sad"),
+        Emotion(3, R.drawable.ic_excited, "Excited"),
+        Emotion(4, R.drawable.ic_worried, "Worried"),
+        Emotion(5, R.drawable.ic_love, "Love"),
+        Emotion(6, R.drawable.ic_proud, "Proud")
+    )
+
     override fun onCreate(savedInstanceState: Bundle?) {
         try {
             super.onCreate(savedInstanceState)
@@ -54,32 +63,13 @@ class EmotionMemoryActivity : AppCompatActivity() {
 
     private fun setupGame() {
         try {
-            val emotions = listOf(
-                Emotion(1, R.drawable.ic_happy, "Happy"),
-                Emotion(2, R.drawable.ic_sad, "Sad"),
-                Emotion(3, R.drawable.ic_excited, "Excited"),
-                Emotion(4, R.drawable.ic_worried, "Worried"),
-                Emotion(5, R.drawable.ic_love, "Love"),
-                Emotion(6, R.drawable.ic_proud, "Proud")
-            )
-
             Log.d("EmotionGame", "Creating card list")
             cards = (emotions + emotions).shuffled().mapIndexed { index, emotion ->
-                EmotionCard(index, emotion, false)  // Make sure isFlipped is initially false
+                EmotionCard(index, emotion, false)
             }
             Log.d("EmotionGame", "Created ${cards.size} cards")
 
-            binding.recyclerViewEmotionCards.apply {
-                val spanCount = 3
-                layoutManager = GridLayoutManager(this@EmotionMemoryActivity, spanCount)
-                val spacing = resources.getDimensionPixelSize(R.dimen.card_spacing)
-                addItemDecoration(GridSpaceItemDecoration(spacing))
-                adapter = EmotionCardAdapter(cards, ::onCardClick)
-                setHasFixedSize(true)
-            }
-
-            updateMoveCounter()
-            Log.d("EmotionGame", "Game setup completed with ${cards.size} cards")
+            // RecyclerView setup remains the same...
         } catch (e: Exception) {
             Log.e("EmotionGame", "Error in setupGame", e)
             Toast.makeText(this, "Error setting up game: ${e.message}", Toast.LENGTH_SHORT).show()

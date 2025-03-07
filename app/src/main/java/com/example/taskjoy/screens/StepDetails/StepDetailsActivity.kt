@@ -16,6 +16,7 @@ import com.example.taskjoy.R
 import com.example.taskjoy.databinding.ActivityStepDetailsBinding
 import com.example.taskjoy.model.Step
 import com.example.taskjoy.model.TaskJoyIcon
+import com.example.taskjoy.viewmodels.StepDetailsViewModel
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.EmailAuthProvider

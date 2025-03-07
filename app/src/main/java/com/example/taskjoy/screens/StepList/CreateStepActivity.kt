@@ -12,6 +12,7 @@ import com.example.taskjoy.adapters.IconAdapter
 import com.example.taskjoy.databinding.CreateStepScreenBinding
 import com.example.taskjoy.model.CustomIcon
 import com.example.taskjoy.model.TaskJoyIcon
+import com.example.taskjoy.viewmodels.CreateStepViewModel
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class CreateStepActivity : AppCompatActivity() {
@@ -23,6 +24,7 @@ class CreateStepActivity : AppCompatActivity() {
     private var templateStepId: String? = null // Template Step ID
     private var selectedIcon: TaskJoyIcon = TaskJoyIcon.BRUSHTEETH // Default icon
     private var selectedCustomIcon: CustomIcon? = null
+
 
     // Initialize the ViewModel using the by viewModels() delegate
     private val viewModel: CreateStepViewModel by viewModels()
