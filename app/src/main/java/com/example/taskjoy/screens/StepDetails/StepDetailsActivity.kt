@@ -11,6 +11,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.viewModelScope
 import com.bumptech.glide.Glide
 import com.example.taskjoy.R
 import com.example.taskjoy.databinding.ActivityStepDetailsBinding
@@ -22,6 +23,9 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 @SuppressLint("InflateParams")
@@ -48,6 +52,19 @@ class StepDetailsActivity : AppCompatActivity() {
             .setView(dialogView)
             .setCancelable(false)
             .setPositiveButton("Yay! 🎉") { _, _ ->
+                if (!isChildLockEnabled) {
+                    finish()
+                }
+            }
+            .create()
+    }
+
+    private val someUnfinishedDialog by lazy {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_did_my_best, null)
+        AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(true)
+            .setPositiveButton("I did my best! 👌") { _, _ ->
                 if (!isChildLockEnabled) {
                     finish()
                 }
@@ -111,6 +128,17 @@ class StepDetailsActivity : AppCompatActivity() {
             if (completed) {
                 Snackbar.make(binding.root, "Routine completed!", Snackbar.LENGTH_SHORT).show()
                 showCompletionCelebration()
+            }
+        }
+
+        viewModel.hasIncompleteSteps.observe(this) { hasIncomplete ->
+            if (hasIncomplete != null && currentPosition == stepIds.size - 1) {
+                // If we're on the last step and checking completion status
+                if (hasIncomplete) {
+                    showSomeUnfinishedDialog()
+                } else {
+                    showCompletionCelebration()
+                }
             }
         }
     }
@@ -219,17 +247,27 @@ class StepDetailsActivity : AppCompatActivity() {
                     loadStep(stepIds[currentPosition + 1], currentPosition + 1)
                 }
             } else {
-                completeAllSteps()
+                // On last step - check if all steps are complete
+                markStepAsComplete {
+                    checkRoutineCompletion()
+                }
             }
         }
+
 
         binding.btnSkipStep.setOnClickListener {
             if (currentPosition < stepIds.size - 1) {
                 // If not the last step, just move to next step
                 loadStep(stepIds[currentPosition + 1], currentPosition + 1)
             } else {
-                // If last step, show completion dialog without marking steps complete
-                showCompletionCelebration()
+                // If last step, check completion status using ViewModel
+                viewModel.areAnyStepsIncomplete(endUserId ?: return@setOnClickListener, routineId) { hasIncomplete ->
+                    if (hasIncomplete) {
+                        someUnfinishedDialog.show()
+                    } else {
+                        showCompletionCelebration()
+                    }
+                }
             }
         }
 
@@ -242,16 +280,45 @@ class StepDetailsActivity : AppCompatActivity() {
         }
     }
 
+    private fun checkRoutineCompletion() {
+        if (endUserId == null || routineId.isEmpty()) {
+            Log.e("StepDetailsActivity", "Cannot check completion: missing required data")
+            return
+        }
+
+        viewModel.checkForIncompleteSteps(endUserId!!, routineId)
+    }
+
+    private fun showSomeUnfinishedDialog() {
+        someUnfinishedDialog.show()
+    }
+
     private fun loadStep(stepId: String, newPosition: Int) {
         currentPosition = newPosition
         getStep(stepId)
         updateNavigationButtons()
     }
 
+    private fun showCompletionCelebration() {
+        celebrationDialog.show()
+    }
+
     private fun updateNavigationButtons() {
         binding.btnPrevStep.isEnabled = currentPosition > 0
+
+        // Update Next button based on completion status
         binding.btnNextStep.apply {
-            isEnabled = true
+            // If step is already completed, hide the Next button
+            visibility = if (step.completed) View.GONE else View.VISIBLE
+            isEnabled = !step.completed
+        }
+
+        // Always show the Skip button, but update its text based on position
+        binding.btnSkipStep.apply {
+            text = if (currentPosition < stepIds.size - 1)
+                "Skip"
+            else
+                "Finish"
         }
     }
 
@@ -265,36 +332,60 @@ class StepDetailsActivity : AppCompatActivity() {
             binding.completionStatusContainer.visibility = View.GONE
             binding.btnResetCompletion.visibility = View.GONE
         }
+
+        // Update navigation buttons whenever completion status changes
+        updateNavigationButtons()
     }
 
-    private fun showCompletionCelebration() {
-        celebrationDialog.show()
-    }
-
+    // Update the completeAllSteps() method in StepDetailsActivity
     private fun completeAllSteps() {
         if (endUserId == null || routineId.isEmpty()) {
             Log.e("StepDetailsActivity", "Cannot complete steps: missing required data")
             return
         }
 
-        viewModel.completeAllSteps(endUserId!!, routineId)
+        // Use the ViewModel to check completion status
+        viewModel.areAnyStepsIncomplete(endUserId!!, routineId) { hasIncomplete ->
+            if (hasIncomplete) {
+                // Show dialog for incomplete steps
+                someUnfinishedDialog.show()
+            } else {
+                // All steps complete, mark all and show celebration
+                viewModel.completeAllSteps(endUserId!!, routineId)
+            }
+        }
     }
 
     private fun markStepAsComplete(onSuccess: (() -> Unit)? = null) {
-        viewModel.markStepAsComplete(
-            endUserId = endUserId ?: return,
-            routineId = routineId,
-            stepId = step.id
-        )
+        // Store a reference to the current step ID
+        val currentStepId = step.id
 
-        // Execute onSuccess callback after update is applied via observers
-        viewModel.step.observe(this) {
-            if (it.completed) {
-                onSuccess?.invoke()
-                // Remove observer after single use
-                viewModel.step.removeObservers(this)
+        // Create a separate observer for completion callback
+        val completionObserver = object : androidx.lifecycle.Observer<Step> {
+            override fun onChanged(updatedStep: Step) {
+                // Only proceed if this is the step we're waiting for and it's completed
+                if (updatedStep.id == currentStepId && updatedStep.completed) {
+                    // Execute success callback
+                    onSuccess?.invoke()
+                    // Remove ONLY this observer, not all of them
+                    viewModel.step.removeObserver(this)
+                }
             }
         }
+
+        // Add the completion observer
+        viewModel.step.observe(this, completionObserver)
+
+        // Call the ViewModel to mark step complete
+        viewModel.markStepAsComplete(
+            endUserId = endUserId ?: run {
+                // If we can't proceed, remove only this observer
+                viewModel.step.removeObserver(completionObserver)
+                return
+            },
+            routineId = routineId,
+            stepId = currentStepId
+        )
     }
 
     private fun markStepAsIncomplete() {
@@ -304,6 +395,7 @@ class StepDetailsActivity : AppCompatActivity() {
             stepId = step.id
         )
     }
+
 
     private fun saveNotes() {
         val newNotes = binding.notesEditText.text.toString()

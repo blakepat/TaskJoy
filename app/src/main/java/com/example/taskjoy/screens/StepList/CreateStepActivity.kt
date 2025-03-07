@@ -29,9 +29,7 @@ class CreateStepActivity : AppCompatActivity() {
     // Initialize the ViewModel using the by viewModels() delegate
     private val viewModel: CreateStepViewModel by viewModels()
 
-    private val selectImageLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
-    ) { uri ->
+    private val selectImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             customIconManager.saveIcon(it)?.let { customIcon ->
                 updateIconAdapter()
@@ -48,8 +46,6 @@ class CreateStepActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = CreateStepScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        setupCustomIconManager()
 
         // Retrieve userId and routineId from intent
         userId = intent.getStringExtra("userId") ?: run {
@@ -70,6 +66,7 @@ class CreateStepActivity : AppCompatActivity() {
         stepId = intent.getStringExtra("stepId")
         templateStepId = intent.getStringExtra("templateStepId")
 
+        setupCustomIconManager()
         setupIconRecyclerView()
         setupClickListeners()
         setupObservers()

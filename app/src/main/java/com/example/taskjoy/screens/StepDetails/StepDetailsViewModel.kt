@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class StepDetailsViewModel(
-    private val repository: RepositoryService = RepositoryService()
+    val repository: RepositoryService = RepositoryService()
 ) : ViewModel() {
 
     // UI state
@@ -30,6 +30,9 @@ class StepDetailsViewModel(
 
     private val _allStepsCompleted = MutableLiveData<Boolean>()
     val allStepsCompleted: LiveData<Boolean> = _allStepsCompleted
+
+    private val _hasIncompleteSteps = MutableLiveData<Boolean>()
+    val hasIncompleteSteps: LiveData<Boolean> = _hasIncompleteSteps
 
     fun getStep(endUserId: String, routineId: String, stepId: String) {
         viewModelScope.launch {
@@ -168,6 +171,74 @@ class StepDetailsViewModel(
             }
         }
     }
+
+    // Add this method to StepDetailsViewModel class
+    fun areAnyStepsIncomplete(
+        endUserId: String,
+        routineId: String,
+        onResult: (Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    repository.getRoutineWithSteps(endUserId, routineId)
+                }
+
+                val hasIncompleteSteps = result.fold(
+                    onSuccess = { (_, steps) -> steps.any { !it.completed } },
+                    onFailure = {
+                        _error.value = it.message ?: "Error checking step completion"
+                        true // Assume incomplete on error
+                    }
+                )
+
+                // Return result on main thread
+                withContext(Dispatchers.Main) {
+                    onResult(hasIncompleteSteps)
+                }
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Error checking step completion"
+                // Return true (incomplete) on error
+                withContext(Dispatchers.Main) {
+                    onResult(true)
+                }
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+
+    fun checkForIncompleteSteps(endUserId: String, routineId: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _error.value = null
+
+            try {
+                val result = withContext(Dispatchers.IO) {
+                    repository.getRoutineWithSteps(endUserId, routineId)
+                }
+
+                result.fold(
+                    onSuccess = { (_, steps) ->
+                        _hasIncompleteSteps.value = steps.any { !it.completed }
+                    },
+                    onFailure = { exception ->
+                        _error.value = exception.message ?: "Error checking routine completion"
+                        _hasIncompleteSteps.value = true // Default to true if there's an error
+                    }
+                )
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Error checking routine completion"
+                _hasIncompleteSteps.value = true // Default to true if there's an error
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
 
     fun clearError() {
         _error.value = null

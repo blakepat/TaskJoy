@@ -9,7 +9,9 @@
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:paddingBottom="80dp"
+        android:clipToPadding="false">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -132,20 +134,15 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="How to complete this task:"
-                        android:textStyle="bold"
-                        android:textSize="16sp"
-                        android:textColor="@color/text_primary"/>
+
 
                     <TextView
                         android:id="@+id/stepDescriptionText"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:textSize="14sp"
+                        android:textAlignment="center"
+                        android:textStyle="bold"
+                        android:textSize="20sp"
                         android:textColor="@color/text_primary"/>
 
                 </LinearLayout>
@@ -157,7 +154,7 @@
                 android:id="@+id/notesInputLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginVertical="12dp"
+                android:layout_marginVertical="8dp"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 app:boxCornerRadiusTopStart="12dp"
                 app:boxCornerRadiusTopEnd="12dp"
@@ -169,6 +166,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="textMultiLine"
+                    android:hint="enter notes for this session..."
                     android:minLines="3"
                     android:gravity="top|start"/>
 
@@ -183,64 +181,82 @@
                 android:text="Save Notes"
                 android:textAllCaps="false"
                 app:cornerRadius="12dp"
-                android:layout_marginBottom="72dp"
+                android:layout_marginBottom="80dp"
                 app:backgroundTint="@color/accent_green"/>
 
         </LinearLayout>
 
     </ScrollView>
 
+    <!-- This is a white background beneath the buttons to make sure they're visible -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_gravity="bottom"
+        android:background="@color/background_cream"/>
+
     <!-- Navigation Buttons -->
-    <LinearLayout
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="12dp"
         android:layout_gravity="bottom"
-        android:gravity="center">
+        app:cardElevation="0dp"
+        app:cardBackgroundColor="@android:color/transparent"
+        android:clipToPadding="false"
+        android:clipChildren="false">
 
-        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/btnPrevStep"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="6dp"
-            android:text="Back"
-            android:textSize="12sp"
-            android:textColor="@color/text_primary"
-            app:icon="@drawable/ic_back"
-            app:iconSize="20dp"
-            app:iconTint="@color/text_primary"
-            app:backgroundTint="@color/secondary_yellow"/>
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="24dp"
+            android:clipToPadding="false"
+            android:clipChildren="false"
+            android:gravity="center">
 
-        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/btnNextStep"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1.2"
-            android:layout_marginHorizontal="6dp"
-            android:textSize="12sp"
-            android:textColor="@color/card_background_white"
-            android:text="Complete"
-            app:icon="@drawable/ic_checkmark"
-            app:iconSize="20dp"
-            app:iconTint="@color/card_background_white"
-            app:backgroundTint="@color/accent_green"/>
+            <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+                android:id="@+id/btnPrevStep"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="6dp"
+                android:text="Back"
+                android:textSize="12sp"
+                android:textColor="@color/text_primary"
+                app:icon="@drawable/ic_back"
+                app:iconSize="20dp"
+                app:iconTint="@color/text_primary"
+                app:backgroundTint="@color/secondary_yellow"/>
 
-        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/btnSkipStep"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:text="Skip"
-            android:textSize="12sp"
-            android:textColor="@color/text_primary"
-            app:icon="@drawable/ic_skip_next"
-            app:iconSize="20dp"
-            app:iconTint="@color/text_primary"
-            app:backgroundTint="@color/secondary_yellow"/>
+            <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+                android:id="@+id/btnNextStep"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.2"
+                android:layout_marginHorizontal="6dp"
+                android:textSize="12sp"
+                android:textColor="@color/card_background_white"
+                android:text="Complete"
+                app:icon="@drawable/ic_checkmark"
+                app:iconSize="20dp"
+                app:iconTint="@color/card_background_white"
+                app:backgroundTint="@color/accent_green"/>
 
-    </LinearLayout>
-
+            <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+                android:id="@+id/btnSkipStep"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="6dp"
+                android:text="Skip"
+                android:textSize="12sp"
+                android:textColor="@color/text_primary"
+                app:icon="@drawable/ic_skip_next"
+                app:iconSize="20dp"
+                app:iconTint="@color/text_primary"
+                app:backgroundTint="@color/secondary_yellow"/>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

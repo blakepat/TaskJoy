@@ -41,6 +41,75 @@
             android:padding="12dp"
             android:scrollbars="none"/>
 
+        <!-- Empty State View -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/emptyStateView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:visibility="gone">
+
+            <ImageView
+                android:id="@+id/emptyStateImage"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:src="@drawable/ic_empty_steps"
+                android:contentDescription="No steps found"
+                app:layout_constraintBottom_toTopOf="@+id/emptyStateTitle"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintVertical_chainStyle="packed" />
+
+            <TextView
+                android:id="@+id/emptyStateTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="No Steps Yet"
+                android:textSize="24sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary"
+                android:layout_marginTop="16dp"
+                app:layout_constraintBottom_toTopOf="@+id/emptyStateDescription"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/emptyStateImage" />
+
+            <TextView
+                android:id="@+id/emptyStateDescription"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Add steps to this routine to get started"
+                android:textSize="16sp"
+                android:textColor="@color/medium_gray"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:paddingStart="32dp"
+                android:paddingEnd="32dp"
+                app:layout_constraintBottom_toTopOf="@+id/emptyStateButton"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/emptyStateTitle" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/emptyStateButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Add First Step"
+                android:textColor="@color/text_primary"
+                android:layout_marginTop="24dp"
+                app:icon="@drawable/ic_add"
+                app:iconTint="@color/text_primary"
+                app:backgroundTint="@color/secondary_yellow"
+                app:cornerRadius="16dp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/emptyStateDescription"
+                app:layout_constraintVertical_bias="0.1" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
     </LinearLayout>
 
     <!-- FAB -->

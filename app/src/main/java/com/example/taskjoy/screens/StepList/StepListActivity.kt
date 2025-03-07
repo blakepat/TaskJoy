@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -68,6 +69,7 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
             stepList.clear()
             stepList.addAll(steps)
             stepAdapter.notifyDataSetChanged()
+            updateEmptyState(steps.isEmpty())
         }
 
         viewModel.error.observe(this) { errorMessage ->
@@ -81,6 +83,71 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
             if (success) {
                 Snackbar.make(binding.root, "Order saved successfully", Snackbar.LENGTH_SHORT).show()
             }
+        }
+
+        viewModel.isLoading.observe(this) { isLoading ->
+            // Handle loading state if needed
+        }
+    }
+
+    /**
+     * Updates the visibility of empty state and recycler view based on whether steps list is empty
+     */
+    private fun updateEmptyState(isEmpty: Boolean) {
+        if (isEmpty) {
+            binding.recyclerViewSteps.visibility = View.GONE
+            binding.emptyStateView.visibility = View.VISIBLE
+            setupEmptyStateAnimation()
+        } else {
+            binding.recyclerViewSteps.visibility = View.VISIBLE
+            binding.emptyStateView.visibility = View.GONE
+        }
+    }
+
+    private fun setupEmptyStateAnimation() {
+        val image = binding.emptyStateImage
+        val title = binding.emptyStateTitle
+        val description = binding.emptyStateDescription
+
+        // Initially set alpha to 0 (invisible)
+        image.alpha = 0f
+        title.alpha = 0f
+        description.alpha = 0f
+
+        // Create animation sequences
+        image.animate()
+            .alpha(1f)
+            .setDuration(400)
+            .withEndAction {
+                // After image appears, animate the title
+                title.animate()
+                    .alpha(1f)
+                    .setDuration(400)
+                    .withEndAction {
+                        // After title appears, animate the description
+                        description.animate()
+                            .alpha(1f)
+                            .setDuration(400)
+                            .start()
+                    }
+                    .start()
+            }
+            .start()
+
+        // Add a subtle pulse animation to draw attention to the FAB
+        binding.fabAddStep.apply {
+            animate()
+                .scaleX(1.1f)
+                .scaleY(1.1f)
+                .setDuration(600)
+                .withEndAction {
+                    animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setDuration(600)
+                        .start()
+                }
+                .start()
         }
     }
 
@@ -104,13 +171,23 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
     }
 
     private fun setupFab() {
+        // Set up FAB button click
         binding.fabAddStep.setOnClickListener {
-            val intent = Intent(this, CreateStepActivity::class.java).apply {
-                putExtra("userId", endUserId)
-                putExtra("routineId", routineId)
-            }
-            startActivity(intent)
+            navigateToCreateStep()
         }
+
+        // Set up empty state button click
+        binding.emptyStateButton.setOnClickListener {
+            navigateToCreateStep()
+        }
+    }
+
+    private fun navigateToCreateStep() {
+        val intent = Intent(this, CreateStepActivity::class.java).apply {
+            putExtra("userId", endUserId)
+            putExtra("routineId", routineId)
+        }
+        startActivity(intent)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
