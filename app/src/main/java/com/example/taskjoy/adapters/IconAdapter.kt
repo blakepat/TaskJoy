@@ -1,5 +1,6 @@
 package com.example.taskjoy.adapters
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.util.Log
 import android.view.LayoutInflater
@@ -15,6 +16,7 @@ import com.example.taskjoy.model.TaskJoyIcon
 import com.google.android.material.card.MaterialCardView
 import java.io.File
 
+@Suppress("DEPRECATION")
 class IconAdapter private constructor(
     private val context: Context,
     private var icons: Array<TaskJoyIcon>,
@@ -214,6 +216,7 @@ class IconAdapter private constructor(
             (if (supportsCustomIcons) 1 else 0) +
             (if (supportsCustomIcons) customIcons.size else 0)
 
+    @SuppressLint("NotifyDataSetChanged")
     fun updateData(
         newIcons: Array<TaskJoyIcon>,
         newCustomIcons: List<CustomIcon>,

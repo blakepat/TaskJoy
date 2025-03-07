@@ -1,10 +1,10 @@
-package com.example.taskjoy.screens
+package com.example.taskjoy.screens.Login
 
 import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat.startActivity
 import com.example.taskjoy.databinding.LoginScreenBinding
+import com.example.taskjoy.screens.HomePage.MainActivity
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth

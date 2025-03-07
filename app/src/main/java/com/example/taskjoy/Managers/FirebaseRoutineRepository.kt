@@ -88,9 +88,9 @@ class FirebaseRoutineRepository(
 
                             val dailyRoutine = DailyRoutine(
                                 templateId = template.id,
-                                name = templateData?.name ?: "",
+                                name = templateData.name,
                                 date = Timestamp(date.time),
-                                image = templateData?.image ?: "",
+                                image = templateData.image,
                                 completed = false,
                                 notes = ""
                             )
@@ -98,7 +98,7 @@ class FirebaseRoutineRepository(
                             batch.set(dailyRoutineRef, dailyRoutine)
 
                             // If there are no steps, increment counter
-                            if (templateData?.steps.isNullOrEmpty()) {
+                            if (templateData.steps.isEmpty()) {
                                 templatesProcessed++
                                 if (templatesProcessed == totalTemplates) {
                                     // Commit batch when all templates are processed
@@ -108,9 +108,9 @@ class FirebaseRoutineRepository(
                             }
 
                             // Fetch all steps for this template
-                            val stepFetches = templateData?.steps?.map { stepId ->
+                            val stepFetches = templateData.steps.map { stepId ->
                                 db.collection("steps").document(stepId).get()
-                            } ?: emptyList()
+                            }
 
                             Tasks.whenAllSuccess<DocumentSnapshot>(stepFetches)
                                 .addOnSuccessListener { stepDocs ->

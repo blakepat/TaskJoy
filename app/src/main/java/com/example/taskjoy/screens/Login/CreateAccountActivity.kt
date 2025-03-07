@@ -1,4 +1,4 @@
-package com.example.taskjoy.screens
+package com.example.taskjoy.screens.Login
 
 import android.os.Bundle
 import android.util.Log

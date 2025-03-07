@@ -1,4 +1,4 @@
-package com.example.taskjoy.screens
+package com.example.taskjoy.screens.StepList
 
 import android.annotation.SuppressLint
 import android.content.Intent
@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.ItemTouchHelper
@@ -15,27 +16,26 @@ import com.example.taskjoy.adapters.StepAdapter
 import com.example.taskjoy.adapters.StepClickListener
 import com.example.taskjoy.adapters.StepItemTouchHelperCallback
 import com.example.taskjoy.databinding.StepListScreenBinding
-import com.example.taskjoy.model.DailyRoutine
 import com.example.taskjoy.model.Step
-import com.example.taskjoy.repository.RepositoryService
+import com.example.taskjoy.screens.StepDetails.StepDetailsActivity
 import com.google.android.material.snackbar.Snackbar
 
 class StepListActivity : AppCompatActivity(), StepClickListener {
 
     private lateinit var binding: StepListScreenBinding
     private lateinit var stepAdapter: StepAdapter
-    private lateinit var repositoryService: RepositoryService
-    private var routineId: String = ""
-    private var isEditMode = false
     private val stepList: MutableList<Step> = mutableListOf()
+    private var isEditMode = false
+    private var routineId: String = ""
     private var endUserId: String? = null
+
+    // Initialize the ViewModel using the by viewModels() delegate
+    private val viewModel: StepListViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = StepListScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        repositoryService = RepositoryService()
 
         // Retrieve intent data
         routineId = intent.getStringExtra("routineId").toString()
@@ -50,9 +50,37 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
 
         setupRecyclerView()
         setupFab()
+        setupObservers()
 
         // Fetch routine and steps
         getRoutineWithSteps()
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    private fun setupObservers() {
+        viewModel.routine.observe(this) { routine ->
+            // Update activity title with routine name
+            supportActionBar?.title = routine.name
+        }
+
+        viewModel.steps.observe(this) { steps ->
+            stepList.clear()
+            stepList.addAll(steps)
+            stepAdapter.notifyDataSetChanged()
+        }
+
+        viewModel.error.observe(this) { errorMessage ->
+            errorMessage?.let {
+                Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
+                viewModel.clearError()
+            }
+        }
+
+        viewModel.saveOrderSuccess.observe(this) { success ->
+            if (success) {
+                Snackbar.make(binding.root, "Order saved successfully", Snackbar.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun onResume() {
@@ -106,22 +134,10 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
     }
 
     private fun saveStepOrder() {
-        repositoryService.saveStepOrder(
+        viewModel.saveStepOrder(
             endUserId = endUserId ?: return,
             routineId = routineId,
-            steps = stepList,
-            onSuccess = {
-                Log.d("StepListActivity", "Successfully saved step order")
-                Snackbar.make(binding.root, "Order saved successfully", Snackbar.LENGTH_SHORT).show()
-            },
-            onError = { error ->
-                Log.e("StepListActivity", "Error saving step order", error)
-                Snackbar.make(
-                    binding.root,
-                    "Error saving order: ${error.localizedMessage}",
-                    Snackbar.LENGTH_LONG
-                ).show()
-            }
+            steps = stepList
         )
     }
 
@@ -149,31 +165,10 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
         startActivity(intent)
     }
 
-    @SuppressLint("NotifyDataSetChanged")
     private fun getRoutineWithSteps() {
-        repositoryService.getRoutineWithSteps(
+        viewModel.getRoutineWithSteps(
             endUserId = endUserId ?: return,
-            routineId = routineId,
-            onSuccess = { routine, steps ->
-                Log.d("StepListActivity", "Routine and steps fetched successfully")
-
-                // Update the title
-                val routineName = routine.name
-                supportActionBar?.title = routineName
-
-                // Update the step list
-                stepList.clear()
-                stepList.addAll(steps)
-                stepAdapter.notifyDataSetChanged()
-            },
-            onError = { error ->
-                Log.e("StepListActivity", "Error getting routine with steps", error)
-                Snackbar.make(
-                    binding.root,
-                    "Error loading steps: ${error.message}",
-                    Snackbar.LENGTH_SHORT
-                ).show()
-            }
+            routineId = routineId
         )
     }
 
@@ -195,39 +190,17 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
     }
 
     private fun deleteStep(step: Step) {
-        Log.d("StepListActivity", "Starting deletion for step: ${step.id}, templateStepId: ${step.templateStepId}")
-
-        repositoryService.deleteStep(
+        viewModel.deleteStep(
             endUserId = endUserId ?: return,
             routineId = routineId,
-            step = step,
-            onSuccess = {
-                stepList.remove(step)
+            step = step
+        )
 
-                // Update remaining steps order
-                repositoryService.updateRemainingStepsOrder(
-                    endUserId = endUserId ?: return@deleteStep,
-                    routineId = routineId,
-                    steps = stepList,
-                    onSuccess = {
-                        stepAdapter.notifyDataSetChanged()
-                        Snackbar.make(binding.root, "Step deleted successfully", Snackbar.LENGTH_SHORT).show()
-                    },
-                    onError = { error ->
-                        Log.e("StepListActivity", "Error updating step order after deletion", error)
-                        // Still notify data set changed even if ordering fails
-                        stepAdapter.notifyDataSetChanged()
-                    }
-                )
-            },
-            onError = { error ->
-                Log.e("StepListActivity", "Error deleting step", error)
-                Snackbar.make(
-                    binding.root,
-                    "Error deleting step: ${error.localizedMessage}",
-                    Snackbar.LENGTH_LONG
-                ).show()
-            }
+        // After deletion, update the order of remaining steps
+        viewModel.updateRemainingStepsOrder(
+            endUserId = endUserId ?: return,
+            routineId = routineId,
+            steps = stepList.filter { it.id != step.id }
         )
     }
 }

@@ -1,11 +1,13 @@
-package com.example.taskjoy.screens
+package com.example.taskjoy.screens.RoutineList
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -14,7 +16,7 @@ import com.example.taskjoy.adapters.RoutineAdapter
 import com.example.taskjoy.adapters.RoutineClickListener
 import com.example.taskjoy.databinding.ActivityRoutineListBinding
 import com.example.taskjoy.model.DailyRoutine
-import com.example.taskjoy.repository.RepositoryService
+import com.example.taskjoy.screens.StepList.StepListActivity
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
@@ -29,9 +31,11 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
     private val routineList = mutableListOf<DailyRoutine>()
     private var isEditMode = false
     private lateinit var auth: FirebaseAuth
-    private lateinit var repositoryService: RepositoryService
     private var endUserId: String? = null
     private var selectedDate: Calendar = Calendar.getInstance()
+
+    // Initialize the ViewModel using the by viewModels() delegate
+    private val viewModel: RoutineListViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,7 +44,6 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
         supportActionBar?.setTitle("Routines")
 
         auth = Firebase.auth
-        repositoryService = RepositoryService()
 
         // Get endUserId from intent if available
         endUserId = intent.getStringExtra("endUser")
@@ -55,6 +58,23 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
         setupRecyclerView()
         setupClickListeners()
         setupDateDisplay()
+        setupObservers()
+    }
+
+    private fun setupObservers() {
+        viewModel.routines.observe(this) { routines ->
+            routineList.clear()
+            routineList.addAll(routines)
+            updateUIBasedOnRoutines()
+        }
+
+
+        viewModel.error.observe(this) { errorMessage ->
+            errorMessage?.let {
+                Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
+                viewModel.clearError()
+            }
+        }
     }
 
     private fun setupDateDisplay() {
@@ -69,56 +89,19 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
 
     private fun loadRoutines() {
         endUserId?.let { id ->
-            // Check and create daily routines if needed, then get them
-            repositoryService.createDailyRoutinesIfNeeded(
-                endUserId = id,
-                date = selectedDate,
-                onSuccess = {
-                    fetchRoutines(id)
-                },
-                onError = { error ->
-                    Log.e("RoutineList", "Error checking/creating routines", error)
-                    Snackbar.make(binding.root, "Error loading routines: ${error.message}", Snackbar.LENGTH_SHORT).show()
-                }
-            )
+            // Check and create routines if needed
+            viewModel.createDailyRoutinesIfNeeded(id, selectedDate)
         } ?: run {
             // If no endUserId, get routines for all children of the current user
             auth.currentUser?.uid?.let { parentId ->
-                repositoryService.getAllEndUserDailyRoutines(
-                    parentId = parentId,
-                    date = selectedDate,
-                    onSuccess = { allRoutines ->
-                        routineList.clear()
-                        routineList.addAll(allRoutines)
-                        updateUIBasedOnRoutines()
-                    },
-                    onError = { error ->
-                        Log.e("RoutineList", "Error getting routines for all children", error)
-                        Snackbar.make(binding.root, "Error loading routines: ${error.message}", Snackbar.LENGTH_SHORT).show()
-                    }
-                )
+                viewModel.getAllEndUserDailyRoutines(parentId, selectedDate)
             } ?: run {
                 Snackbar.make(binding.root, "Error: User not authenticated", Snackbar.LENGTH_SHORT).show()
             }
         }
     }
 
-    private fun fetchRoutines(id: String) {
-        repositoryService.getDailyRoutines(
-            endUserId = id,
-            date = selectedDate,
-            onSuccess = { routines ->
-                routineList.clear()
-                routineList.addAll(routines)
-                updateUIBasedOnRoutines()
-            },
-            onError = { error ->
-                Log.e("RoutineList", "Error getting routines", error)
-                Snackbar.make(binding.root, "Error getting routines: ${error.message}", Snackbar.LENGTH_SHORT).show()
-            }
-        )
-    }
-
+    @SuppressLint("NotifyDataSetChanged")
     private fun updateUIBasedOnRoutines() {
         if (routineList.isEmpty()) {
             binding.recyclerViewRoutines.visibility = View.GONE
@@ -181,24 +164,7 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
 
     private fun deleteRoutine(routine: DailyRoutine) {
         val userId = endUserId ?: return
-
-        repositoryService.deleteRoutine(
-            endUserId = userId,
-            routine = routine,
-            onSuccess = {
-                routineList.remove(routine)
-                updateUIBasedOnRoutines()
-                Snackbar.make(binding.root, "Routine deleted successfully", Snackbar.LENGTH_SHORT).show()
-            },
-            onError = { error ->
-                Log.e("RoutineList", "Error deleting routine", error)
-                Snackbar.make(
-                    binding.root,
-                    "Error deleting routine: ${error.localizedMessage}",
-                    Snackbar.LENGTH_LONG
-                ).show()
-            }
-        )
+        viewModel.deleteRoutine(userId, routine)
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

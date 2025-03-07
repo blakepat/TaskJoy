@@ -1,6 +1,6 @@
 package com.example.taskjoy.adapters
 
-import android.app.ProgressDialog.show
+import android.annotation.SuppressLint
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
@@ -31,6 +31,7 @@ class ChildAdapter(
         return children.size
     }
 
+    @SuppressLint("SetTextI18n")
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val child: EndUser = children[position]
 

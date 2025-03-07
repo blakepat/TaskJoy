@@ -1,6 +1,7 @@
 // StepAdapter.kt
 package com.example.taskjoy.adapters
 
+import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -37,6 +38,7 @@ class StepAdapter(
 
     override fun getItemCount(): Int = steps.size
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val currItem: Step = steps[position]
 
@@ -95,6 +97,7 @@ class StepAdapter(
         }
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     fun setEditMode(enabled: Boolean) {
         isEditMode = enabled
         notifyDataSetChanged()

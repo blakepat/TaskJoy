@@ -1,5 +1,6 @@
-package com.example.taskjoy.screens
+package com.example.taskjoy.screens.HomePage
 
+import android.annotation.SuppressLint
 import android.graphics.Rect
 import android.os.Bundle
 import android.os.Handler
@@ -158,6 +159,7 @@ class EmotionMemoryActivity : AppCompatActivity() {
         Log.d("EmotionGame", "Showing game won dialog")
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private fun resetGame() {
         Log.d("EmotionGame", "Resetting game")
         cards.forEach { it.isFlipped = false }

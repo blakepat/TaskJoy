@@ -20,6 +20,7 @@ class StepItemTouchHelperCallback(
         return makeMovementFlags(dragFlags, 0)
     }
 
+    @Suppress("DEPRECATION")
     override fun onMove(
         recyclerView: RecyclerView,
         viewHolder: RecyclerView.ViewHolder,

@@ -1,5 +1,6 @@
 package com.example.taskjoy.adapters
 
+import android.annotation.SuppressLint
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -49,6 +50,7 @@ class UserManagementAdapter(
 
     override fun getItemCount() = users.size
 
+    @SuppressLint("NotifyDataSetChanged")
     fun updateUsers(newUsers: List<UserItem>) {
         users = newUsers
         notifyDataSetChanged()

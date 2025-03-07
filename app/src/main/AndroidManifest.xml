@@ -18,7 +18,7 @@
 
         <!-- Only SplashActivity should have the LAUNCHER intent filter -->
         <activity
-            android:name=".screens.SplashActivity"
+            android:name=".screens.Login.SplashActivity"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"
             android:exported="true">
             <intent-filter>
@@ -29,36 +29,36 @@
 
         <!-- Remove LAUNCHER intent filter from LoginActivity -->
         <activity
-            android:name=".screens.LoginActivity"
+            android:name=".screens.Login.LoginActivity"
             android:exported="true" />
 
         <!-- Rest of your activities remain the same -->
         <activity
-            android:name=".screens.EmotionMemoryActivity"
+            android:name=".screens.HomePage.EmotionMemoryActivity"
             android:exported="false" />
         <activity
-            android:name=".screens.CreateAccountActivity"
+            android:name=".screens.Login.CreateAccountActivity"
             android:exported="true"/>
         <activity
-            android:name=".screens.MainActivity"
+            android:name=".screens.HomePage.MainActivity"
             android:exported="true"/>
         <activity
-            android:name=".screens.RoutineListActivity"
+            android:name=".screens.RoutineList.RoutineListActivity"
             android:exported="true"/>
         <activity
-            android:name=".screens.StepDetailsActivity"
+            android:name=".screens.StepDetails.StepDetailsActivity"
             android:exported="true"/>
         <activity
-            android:name=".screens.StepListActivity"
+            android:name=".screens.StepList.StepListActivity"
             android:exported="true"/>
         <activity
-            android:name=".screens.CreateStepActivity"
+            android:name=".screens.StepList.CreateStepActivity"
             android:exported="true"/>
         <activity
-            android:name=".screens.CreateRoutineActivity"
+            android:name=".screens.RoutineList.CreateRoutineActivity"
             android:exported="true"/>
         <activity
-            android:name=".screens.CreateChildActivity"
+            android:name=".screens.HomePage.CreateChildActivity"
             android:exported="true"/>
     </application>
 </manifest>

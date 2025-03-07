@@ -1,5 +1,6 @@
-package com.example.taskjoy.screens
+package com.example.taskjoy.screens.HomePage
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -8,7 +9,9 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.MenuItem
 import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.taskjoy.R
@@ -16,11 +19,12 @@ import com.example.taskjoy.adapters.ChildAdapter
 import com.example.taskjoy.adapters.ChildClickListener
 import com.example.taskjoy.databinding.ActivityMainBinding
 import com.example.taskjoy.model.EndUser
-import com.example.taskjoy.repository.RepositoryService
+import com.example.taskjoy.screens.RoutineList.RoutineListActivity
 import com.google.android.material.snackbar.Snackbar
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -31,7 +35,9 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
     private val childList = mutableListOf<EndUser>()
     private lateinit var childAdapter: ChildAdapter
     private lateinit var selectedDate: Calendar
-    private lateinit var repositoryService: RepositoryService
+
+    // Initialize the ViewModel using the by viewModels() delegate
+    private val viewModel: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,14 +46,31 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
 
         auth = Firebase.auth
         selectedDate = Calendar.getInstance()
-        repositoryService = RepositoryService()
 
         setupRecyclerView()
         setupCalendar()
         setupClickListeners()
         updateCurrentDateDisplay()
+        setupObservers()
 
         checkChildLockMode()
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    private fun setupObservers() {
+        viewModel.children.observe(this) { children ->
+            childList.clear()
+            childList.addAll(children)
+            childAdapter.notifyDataSetChanged()
+        }
+
+
+        viewModel.error.observe(this) { errorMessage ->
+            errorMessage?.let {
+                Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
+                viewModel.clearError()
+            }
+        }
     }
 
     private fun checkChildLockMode() {
@@ -151,18 +174,9 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
     override fun onDeleteClick(id: String) {
         val currentUserId = getCurrentUserId()
         if (currentUserId != null) {
-            repositoryService.deleteEndUser(
-                parentId = currentUserId,
-                endUserId = id,
-                onSuccess = {
-                    getChildren() // Refresh the list after deletion
-                    Snackbar.make(binding.root, "Child removed successfully", Snackbar.LENGTH_SHORT).show()
-                },
-                onError = { e ->
-                    Log.e("MainActivity", "Error deleting child", e)
-                    Snackbar.make(binding.root, "Error removing child. Please try again.", Snackbar.LENGTH_SHORT).show()
-                }
-            )
+            lifecycleScope.launch {
+                viewModel.deleteEndUser(currentUserId, id)
+            }
         } else {
             Snackbar.make(binding.root, "User not authenticated", Snackbar.LENGTH_SHORT).show()
         }
@@ -175,17 +189,6 @@ class MainActivity : AppCompatActivity(), ChildClickListener {
             return
         }
 
-        repositoryService.getChildren(
-            parentId = currentUserId,
-            onSuccess = { children ->
-                childList.clear()
-                childList.addAll(children)
-                childAdapter.notifyDataSetChanged()
-            },
-            onError = { error ->
-                Log.e("MainActivity", "Error getting children", error)
-                Snackbar.make(binding.root, "Error getting children data. Please try again.", Snackbar.LENGTH_SHORT).show()
-            }
-        )
+        viewModel.getChildren(currentUserId)
     }
 }

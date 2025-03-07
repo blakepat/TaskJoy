@@ -27,6 +27,7 @@ class EmotionCardAdapter(
 
     override fun getItemCount() = cards.size
 
+    @Suppress("DEPRECATION")
     inner class CardViewHolder(
         private val binding: ItemEmotionCardBinding
     ) : RecyclerView.ViewHolder(binding.root) {

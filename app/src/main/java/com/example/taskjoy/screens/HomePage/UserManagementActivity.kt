@@ -1,4 +1,4 @@
-package com.example.taskjoy.screens
+package com.example.taskjoy.screens.HomePage
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
@@ -76,7 +76,7 @@ class UserManagementActivity : AppCompatActivity() {
                             val isParent = endUser?.parents?.contains(doc.id) == true
                             UserManagementAdapter.UserItem(
                                 id = doc.id,
-                                email = parent.email ?: "",
+                                email = parent.email,
                                 isParent = isParent
                             )
                         }

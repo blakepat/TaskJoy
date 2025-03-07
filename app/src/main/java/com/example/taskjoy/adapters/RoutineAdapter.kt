@@ -1,5 +1,6 @@
 package com.example.taskjoy.adapters
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
@@ -10,8 +11,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.taskjoy.R
 import com.example.taskjoy.model.DailyRoutine
 import com.example.taskjoy.model.TaskJoyIcon
-import java.text.SimpleDateFormat
-import java.util.Locale
 
 class RoutineAdapter(
     private val routines: List<DailyRoutine>,
@@ -81,6 +80,7 @@ class RoutineAdapter(
 
     override fun getItemCount(): Int = routines.size
 
+    @SuppressLint("NotifyDataSetChanged")
     fun setEditMode(enabled: Boolean) {
         isEditMode = enabled
         notifyDataSetChanged()

@@ -1,13 +1,14 @@
-package com.example.taskjoy.screens
+package com.example.taskjoy.screens.StepDetails
 
+import android.annotation.SuppressLint
 import android.content.Context
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.bumptech.glide.Glide
@@ -15,7 +16,6 @@ import com.example.taskjoy.R
 import com.example.taskjoy.databinding.ActivityStepDetailsBinding
 import com.example.taskjoy.model.Step
 import com.example.taskjoy.model.TaskJoyIcon
-import com.example.taskjoy.repository.RepositoryService
 import com.google.android.material.snackbar.Snackbar
 import com.google.android.material.textfield.TextInputEditText
 import com.google.firebase.auth.EmailAuthProvider
@@ -23,9 +23,9 @@ import com.google.firebase.auth.ktx.auth
 import com.google.firebase.ktx.Firebase
 import java.io.File
 
+@SuppressLint("InflateParams")
 class StepDetailsActivity : AppCompatActivity() {
     private lateinit var binding: ActivityStepDetailsBinding
-    private lateinit var repositoryService: RepositoryService
     private lateinit var step: Step
     private var endUserId: String? = null
     private var routineId: String = ""
@@ -34,13 +34,30 @@ class StepDetailsActivity : AppCompatActivity() {
     private var currentPosition: Int = 0
     private lateinit var stepIds: ArrayList<String>
 
+    // Initialize the ViewModel using the by viewModels() delegate
+    private val viewModel: StepDetailsViewModel by viewModels()
+
+    // Lazy initialization for preferences
+    private val preferences by lazy { getSharedPreferences("TaskJoyPrefs", Context.MODE_PRIVATE) }
+
+    // Lazy initialization for celebration dialog
+    private val celebrationDialog by lazy {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_celebration, null)
+        AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(false)
+            .setPositiveButton("Yay! 🎉") { _, _ ->
+                if (!isChildLockEnabled) {
+                    finish()
+                }
+            }
+            .create()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityStepDetailsBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        // Initialize repository service
-        repositoryService = RepositoryService()
 
         // Enable the up button in the action bar
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -52,6 +69,7 @@ class StepDetailsActivity : AppCompatActivity() {
         routineId = intent.getStringExtra("routineId") ?: ""
 
         setupClickListeners()
+        setupObservers()
         getStep(stepId ?: "")
 
         // Handle back press
@@ -64,6 +82,36 @@ class StepDetailsActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    private fun setupObservers() {
+        viewModel.step.observe(this) { updatedStep ->
+            step = updatedStep
+            setupUI()
+            updateNavigationButtons()
+            updateCompletionStatus()
+        }
+
+
+        viewModel.error.observe(this) { errorMessage ->
+            errorMessage?.let {
+                Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
+                viewModel.clearError()
+            }
+        }
+
+        viewModel.saveNotesSuccess.observe(this) { success ->
+            if (success) {
+                Snackbar.make(binding.root, "Notes saved!", Snackbar.LENGTH_SHORT).show()
+            }
+        }
+
+        viewModel.allStepsCompleted.observe(this) { completed ->
+            if (completed) {
+                Snackbar.make(binding.root, "Routine completed!", Snackbar.LENGTH_SHORT).show()
+                showCompletionCelebration()
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -102,8 +150,7 @@ class StepDetailsActivity : AppCompatActivity() {
                 invalidateOptionsMenu()
 
                 // Save child lock state
-                val prefs = getSharedPreferences("TaskJoyPrefs", Context.MODE_PRIVATE)
-                prefs.edit().putBoolean("childLockEnabled", false).apply()
+                preferences.edit().putBoolean("childLockEnabled", false).apply()
 
                 Snackbar.make(binding.root, "Child Lock Disabled", Snackbar.LENGTH_SHORT).show()
             })
@@ -114,8 +161,7 @@ class StepDetailsActivity : AppCompatActivity() {
             invalidateOptionsMenu()
 
             // Save child lock state
-            val prefs = getSharedPreferences("TaskJoyPrefs", Context.MODE_PRIVATE)
-            prefs.edit().putBoolean("childLockEnabled", true).apply()
+            preferences.edit().putBoolean("childLockEnabled", true).apply()
 
             Snackbar.make(binding.root, "Child Lock Enabled", Snackbar.LENGTH_SHORT).show()
         }
@@ -208,6 +254,7 @@ class StepDetailsActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("SetTextI18n")
     private fun updateCompletionStatus() {
         if (step.completed) {
             binding.completionStatusContainer.visibility = View.VISIBLE
@@ -220,17 +267,7 @@ class StepDetailsActivity : AppCompatActivity() {
     }
 
     private fun showCompletionCelebration() {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_celebration, null)
-
-        AlertDialog.Builder(this)
-            .setView(dialogView)
-            .setCancelable(false)
-            .setPositiveButton("Yay! 🎉") { _, _ ->
-                if (!isChildLockEnabled) {
-                    finish()
-                }
-            }
-            .show()
+        celebrationDialog.show()
     }
 
     private fun completeAllSteps() {
@@ -239,96 +276,50 @@ class StepDetailsActivity : AppCompatActivity() {
             return
         }
 
-        repositoryService.completeAllSteps(
-            endUserId = endUserId!!,
-            routineId = routineId,
-            onSuccess = { timestamp ->
-                Snackbar.make(binding.root, "Routine completed!", Snackbar.LENGTH_SHORT).show()
-                step.completed = true
-                step.completedAt = timestamp
-                updateCompletionStatus()
-                showCompletionCelebration()
-            },
-            onError = { error ->
-                Log.e("StepDetailsActivity", "Error completing steps", error)
-                Snackbar.make(binding.root, "Error completing routine", Snackbar.LENGTH_SHORT).show()
-            }
-        )
+        viewModel.completeAllSteps(endUserId!!, routineId)
     }
 
     private fun markStepAsComplete(onSuccess: (() -> Unit)? = null) {
-        repositoryService.markStepAsComplete(
+        viewModel.markStepAsComplete(
             endUserId = endUserId ?: return,
             routineId = routineId,
-            stepId = step.id,
-            onSuccess = { timestamp ->
-                step.completed = true
-                step.completedAt = timestamp
-                updateCompletionStatus()
-                updateNavigationButtons()
-                Snackbar.make(binding.root, "Step completed!", Snackbar.LENGTH_SHORT).show()
-                onSuccess?.invoke()
-            },
-            onError = { error ->
-                Log.e("StepDetailsActivity", "Error marking step as complete", error)
-                Snackbar.make(binding.root, "Error updating step", Snackbar.LENGTH_SHORT).show()
-            }
+            stepId = step.id
         )
+
+        // Execute onSuccess callback after update is applied via observers
+        viewModel.step.observe(this) {
+            if (it.completed) {
+                onSuccess?.invoke()
+                // Remove observer after single use
+                viewModel.step.removeObservers(this)
+            }
+        }
     }
 
     private fun markStepAsIncomplete() {
-        repositoryService.markStepAsIncomplete(
+        viewModel.markStepAsIncomplete(
             endUserId = endUserId ?: return,
             routineId = routineId,
-            stepId = step.id,
-            onSuccess = {
-                step.completed = false
-                step.completedAt = null
-                updateCompletionStatus()
-                updateNavigationButtons()
-                Snackbar.make(binding.root, "Step marked as incomplete", Snackbar.LENGTH_SHORT).show()
-            },
-            onError = { error ->
-                Log.e("StepDetailsActivity", "Error marking step as incomplete", error)
-                Snackbar.make(binding.root, "Error updating step", Snackbar.LENGTH_SHORT).show()
-            }
+            stepId = step.id
         )
     }
 
     private fun saveNotes() {
         val newNotes = binding.notesEditText.text.toString()
 
-        repositoryService.saveStepNotes(
+        viewModel.saveStepNotes(
             endUserId = endUserId ?: return,
             routineId = routineId,
             stepId = step.id,
-            notes = newNotes,
-            onSuccess = {
-                step.notes = newNotes
-                Snackbar.make(binding.root, "Notes saved!", Snackbar.LENGTH_SHORT).show()
-            },
-            onError = { error ->
-                Log.e("StepDetailsActivity", "Error saving notes", error)
-                Snackbar.make(binding.root, "Error saving notes", Snackbar.LENGTH_SHORT).show()
-            }
+            notes = newNotes
         )
     }
 
     private fun getStep(stepId: String) {
-        repositoryService.getStep(
+        viewModel.getStep(
             endUserId = endUserId ?: return,
             routineId = routineId,
-            stepId = stepId,
-            onSuccess = { stepFromDB ->
-                step = stepFromDB
-                setupUI()
-                updateNavigationButtons()
-                updateCompletionStatus()
-            },
-            onError = { error ->
-                Log.e("StepDetailsActivity", "Error getting step", error)
-                Snackbar.make(binding.root, "Error getting step", Snackbar.LENGTH_SHORT).show()
-            }
+            stepId = stepId
         )
     }
 
@@ -340,7 +331,7 @@ class StepDetailsActivity : AppCompatActivity() {
         try {
             if (step.image == TaskJoyIcon.CUSTOM.name && step.customIconPath != null) {
                 Glide.with(this)
-                    .load(File(step.customIconPath))
+                    .load(File(step.customIconPath.toString()))
                     .centerCrop()
                     .error(R.drawable.ic_brush_teeth)
                     .into(binding.stepImage)

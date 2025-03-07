@@ -1,5 +1,6 @@
-package com.example.taskjoy.screens
+package com.example.taskjoy.screens.HomePage
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -71,6 +72,7 @@ class CreateChildActivity : AppCompatActivity() {
 
         override fun getItemCount() = users.size
 
+        @SuppressLint("NotifyDataSetChanged")
         fun updateUsers(newUsers: List<UserItem>) {
             users = newUsers
             notifyDataSetChanged()
@@ -143,7 +145,7 @@ class CreateChildActivity : AppCompatActivity() {
                             val isParent = endUser?.parents?.contains(doc.id) == true
                             UserManagementAdapter.UserItem(
                                 id = doc.id,
-                                email = parent.email ?: "",
+                                email = parent.email,
                                 isParent = isParent
                             )
                         }
@@ -413,6 +415,7 @@ class CreateChildActivity : AppCompatActivity() {
             }
             .show()
     }
+    @SuppressLint("SetTextI18n")
     private fun getEndUser(endUserId: String) {
         db.collection("endUser")
             .document(endUserId)

@@ -12,12 +12,15 @@ import java.util.Calendar
  * Service façade that provides a single access point to all repositories
  * Uses dependency injection to allow for testing with mock repositories
  */
-class RepositoryService(
-    private val userRepository: UserRepository = FirebaseUserRepository(),
-    private val routineRepository: RoutineRepository = FirebaseRoutineRepository(),
-    private val templateRepository: TemplateRepository = FirebaseTemplateRepository(),
-    private val stepRepository: StepRepository = FirebaseStepRepository()
-) {
+class RepositoryService {
+
+    private val userRepository: UserRepository by lazy { FirebaseUserRepository() }
+    private val routineRepository: RoutineRepository by lazy { FirebaseRoutineRepository() }
+    private val templateRepository: TemplateRepository by lazy { FirebaseTemplateRepository() }
+    private val stepRepository: StepRepository by lazy { FirebaseStepRepository() }
+
+
+
     // ====== USER OPERATIONS ======
 
     /**
