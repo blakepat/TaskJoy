@@ -89,7 +89,7 @@ class CreateRoutineActivity : AppCompatActivity() {
     private fun setupIconRecyclerView() {
         val iconAdapter = IconAdapter.createBasic(
             context = this,
-            icons = TaskJoyIcon.values(),
+            icons = TaskJoyIcon.entries.toTypedArray(),
             selectedIcon = selectedIcon
         ) { icon ->
             selectedIcon = icon

@@ -1,5 +1,6 @@
 package com.example.taskjoy.repository
 
+import com.example.taskjoy.adapters.UserManagementAdapter
 import com.example.taskjoy.model.EndUser
 
 /**
@@ -33,5 +34,34 @@ interface UserRepository {
         currentUserId: String,
         onSuccess: (Boolean) -> Unit,
         onFailure: (Exception) -> Unit
+    )
+
+    /**
+     * Check if the current user is a parent of the end user
+     */
+    fun checkUserRole(
+        endUserId: String,
+        currentUserId: String,
+        onSuccess: (Boolean) -> Unit,
+        onError: (Exception) -> Unit
+    )
+
+    /**
+     * Load all users (parents and chaperones) for an end user
+     */
+    fun loadUserAccess(
+        endUserId: String,
+        onSuccess: (List<UserManagementAdapter.UserItem>) -> Unit,
+        onError: (Exception) -> Unit
+    )
+
+    /**
+     * Remove user access (parent or chaperone) from an end user
+     */
+    fun removeUserAccess(
+        endUserId: String,
+        userId: String,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
     )
 }
