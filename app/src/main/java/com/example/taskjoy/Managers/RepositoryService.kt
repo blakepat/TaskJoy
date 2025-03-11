@@ -9,17 +9,13 @@ import com.example.taskjoy.model.TaskJoyIcon
 import com.google.firebase.Timestamp
 import java.util.Calendar
 
-/**
- * Service façade that provides a single access point to all repositories
- * Uses dependency injection to allow for testing with mock repositories
- */
+
 class RepositoryService(
     private val userRepository: UserRepository = FirebaseUserRepository(),
     private val routineRepository: RoutineRepository = FirebaseRoutineRepository(),
     private val templateRepository: TemplateRepository = FirebaseTemplateRepository(),
     private val stepRepository: StepRepository = FirebaseStepRepository()
 ) {
-    // ====== USER OPERATIONS ======
 
     // Basic user operations
     suspend fun getChildren(parentId: String): Result<List<EndUser>> =

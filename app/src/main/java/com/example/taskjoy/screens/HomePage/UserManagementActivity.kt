@@ -19,7 +19,6 @@ class UserManagementActivity : AppCompatActivity() {
     private lateinit var auth: FirebaseAuth
     private var endUserId: String = ""
 
-    // Initialize the ViewModel using the by viewModels() delegate
     private val viewModel: UserManagementViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,28 +34,23 @@ class UserManagementActivity : AppCompatActivity() {
 
         setupObservers()
 
-        // Start by checking user role
         auth.currentUser?.uid?.let { currentUserId ->
             viewModel.checkUserRole(endUserId, currentUserId)
         }
     }
 
     private fun setupObservers() {
-        // Observe isParent to setup RecyclerView
         viewModel.isParent.observe(this) { isParent ->
             setupRecyclerView(isParent)
 
-            // Load users after role is determined
             viewModel.loadUsers(endUserId)
         }
 
-        // Observe users to update adapter
         viewModel.users.observe(this) { users ->
             adapter.updateUsers(users)
         }
 
 
-        // Observe error messages
         viewModel.error.observe(this) { errorMessage ->
             errorMessage?.let {
                 Snackbar.make(binding.root, it, Snackbar.LENGTH_SHORT).show()
@@ -64,7 +58,6 @@ class UserManagementActivity : AppCompatActivity() {
             }
         }
 
-        // Observe removal success
         viewModel.removeSuccess.observe(this) { success ->
             if (success) {
                 Snackbar.make(binding.root, "User removed successfully", Snackbar.LENGTH_SHORT).show()

@@ -17,9 +17,7 @@ import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * Firebase implementation of the StepRepository interface
- */
+
 class FirebaseStepRepository(
     private val db: FirebaseFirestore = Firebase.firestore
 ) : StepRepository {
@@ -37,13 +35,10 @@ class FirebaseStepRepository(
 
             Log.d(TAG, "Routine document fetched: ${routineDoc.data}")
 
-            // Create a new DailyRoutine object with the ID properly set
-            // If DailyRoutine is a data class, we can use copy
             val routineData = routineDoc.toObject(DailyRoutine::class.java) ?: DailyRoutine()
-            // Create a new instance with the ID properly set (assuming DailyRoutine is a data class)
             val routine = routineData.copy(id = routineId)
 
-            // Fetch and sort steps by order
+            //GET STEPS
             val stepDocs = db.collection("endUser").document(endUserId).collection("dailyRoutines")
                 .document(routineId).collection("dailySteps")
                 .orderBy("order", Query.Direction.ASCENDING)
@@ -173,13 +168,12 @@ class FirebaseStepRepository(
             val templateStepId = step.templateStepId
 
             if (templateStepId.isEmpty()) {
-                // If no template step ID, just delete the daily step
+                // If no template step id, delete the daily step
                 dailyStepRef.delete().await()
                 return Result.success(Unit)
             }
 
             db.runTransaction { transaction ->
-                // Handle template step deletion
                 val dailyRoutineDoc = transaction.get(dailyRoutineRef)
                 if (!dailyRoutineDoc.exists()) {
                     throw FirebaseFirestoreException(
@@ -247,7 +241,6 @@ class FirebaseStepRepository(
                 val stepData = document.toObject(Step::class.java)
 
                 stepData?.let {
-                    // Create a new step with the ID properly set using copy
                     val stepWithId = it.copy(id = stepId)
                     Result.success(stepWithId)
                 } ?: Result.failure(Exception("Failed to parse step data"))
@@ -281,15 +274,13 @@ class FirebaseStepRepository(
                 customIconPath = if (icon == TaskJoyIcon.CUSTOM) customIconPath else null
             )
 
-            // Set the step document
             stepRef.set(step).await()
 
-            // Add to the dailySteps subcollection with a unique ID
             val dailyStep = step.copy(
-                notes = "", // Notes are specific to daily steps
+                notes = "",
                 completed = false,
                 completedAt = null,
-                id = stepRef.id // Reuse step ID for simplicity
+                id = stepRef.id
             )
 
             val dailyStepsRef = db.collection("endUser")
@@ -300,7 +291,6 @@ class FirebaseStepRepository(
 
             dailyStepsRef.document(dailyStep.id).set(dailyStep).await()
 
-            // Update the routineTemplate with the reference to the new step
             val dailyRoutineDoc = db.collection("endUser")
                 .document(endUserId)
                 .collection("dailyRoutines")
@@ -317,7 +307,6 @@ class FirebaseStepRepository(
                         .await()
                 } catch (e: Exception) {
                     Log.w(TAG, "Error updating routineTemplate", e)
-                    // Still consider it a success since daily step is created
                 }
             }
 
@@ -342,7 +331,7 @@ class FirebaseStepRepository(
         return try {
             val batch = db.batch()
 
-            // Update the template step if it exists
+            // Update the template-step
             if (!templateStepId.isNullOrEmpty()) {
                 val templateStepRef = db.collection("steps").document(templateStepId)
                 val templateStepUpdates = hashMapOf(
@@ -354,7 +343,7 @@ class FirebaseStepRepository(
                 batch.set(templateStepRef, templateStepUpdates, SetOptions.merge())
             }
 
-            // Update the daily step
+            // Update daily-step
             val dailyStepRef = db.collection("endUser")
                 .document(endUserId)
                 .collection("dailyRoutines")

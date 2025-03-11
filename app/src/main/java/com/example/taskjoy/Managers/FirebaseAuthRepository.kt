@@ -10,9 +10,7 @@ import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.tasks.await
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * Firebase implementation of the AuthRepository interface
- */
+
 class FirebaseAuthRepository(
     private val auth: FirebaseAuth = Firebase.auth,
     private val db: FirebaseFirestore = Firebase.firestore

@@ -39,13 +39,10 @@ class StepDetailsActivity : AppCompatActivity() {
     private var currentPosition: Int = 0
     private lateinit var stepIds: ArrayList<String>
 
-    // Initialize the ViewModel using the by viewModels() delegate
     private val viewModel: StepDetailsViewModel by viewModels()
 
-    // Lazy initialization for preferences
     private val preferences by lazy { getSharedPreferences("TaskJoyPrefs", Context.MODE_PRIVATE) }
 
-    // Lazy initialization for celebration dialog
     private val celebrationDialog by lazy {
         val dialogView = layoutInflater.inflate(R.layout.dialog_celebration, null)
         AlertDialog.Builder(this)
@@ -77,7 +74,6 @@ class StepDetailsActivity : AppCompatActivity() {
         binding = ActivityStepDetailsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Enable the up button in the action bar
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         val stepId = intent.getStringExtra("stepId")
@@ -90,7 +86,6 @@ class StepDetailsActivity : AppCompatActivity() {
         setupObservers()
         getStep(stepId ?: "")
 
-        // Handle back press
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 if (isChildLockEnabled) {
@@ -172,24 +167,21 @@ class StepDetailsActivity : AppCompatActivity() {
 
     private fun toggleChildLock() {
         if (isChildLockEnabled) {
-            // If trying to disable child lock, show password dialog
+
             showPasswordDialog(onSuccess = {
                 isChildLockEnabled = false
                 updateChildLockUI()
                 invalidateOptionsMenu()
 
-                // Save child lock state
                 preferences.edit().putBoolean("childLockEnabled", false).apply()
 
                 Snackbar.make(binding.root, "Child Lock Disabled", Snackbar.LENGTH_SHORT).show()
             })
         } else {
-            // Enable child lock without password
             isChildLockEnabled = true
             updateChildLockUI()
             invalidateOptionsMenu()
 
-            // Save child lock state
             preferences.edit().putBoolean("childLockEnabled", true).apply()
 
             Snackbar.make(binding.root, "Child Lock Enabled", Snackbar.LENGTH_SHORT).show()
@@ -333,53 +325,40 @@ class StepDetailsActivity : AppCompatActivity() {
             binding.btnResetCompletion.visibility = View.GONE
         }
 
-        // Update navigation buttons whenever completion status changes
         updateNavigationButtons()
     }
 
-    // Update the completeAllSteps() method in StepDetailsActivity
     private fun completeAllSteps() {
         if (endUserId == null || routineId.isEmpty()) {
             Log.e("StepDetailsActivity", "Cannot complete steps: missing required data")
             return
         }
 
-        // Use the ViewModel to check completion status
         viewModel.areAnyStepsIncomplete(endUserId!!, routineId) { hasIncomplete ->
             if (hasIncomplete) {
-                // Show dialog for incomplete steps
                 someUnfinishedDialog.show()
             } else {
-                // All steps complete, mark all and show celebration
                 viewModel.completeAllSteps(endUserId!!, routineId)
             }
         }
     }
 
     private fun markStepAsComplete(onSuccess: (() -> Unit)? = null) {
-        // Store a reference to the current step ID
         val currentStepId = step.id
 
-        // Create a separate observer for completion callback
         val completionObserver = object : androidx.lifecycle.Observer<Step> {
             override fun onChanged(updatedStep: Step) {
-                // Only proceed if this is the step we're waiting for and it's completed
                 if (updatedStep.id == currentStepId && updatedStep.completed) {
-                    // Execute success callback
                     onSuccess?.invoke()
-                    // Remove ONLY this observer, not all of them
                     viewModel.step.removeObserver(this)
                 }
             }
         }
 
-        // Add the completion observer
         viewModel.step.observe(this, completionObserver)
 
-        // Call the ViewModel to mark step complete
         viewModel.markStepAsComplete(
             endUserId = endUserId ?: run {
-                // If we can't proceed, remove only this observer
                 viewModel.step.removeObserver(completionObserver)
                 return
             },

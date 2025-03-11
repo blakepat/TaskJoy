@@ -31,7 +31,6 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
     private var routineId: String = ""
     private var endUserId: String? = null
 
-    // Initialize the ViewModel using the by viewModels() delegate
     private val viewModel: StepListViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,7 +38,6 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
         binding = StepListScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Retrieve intent data
         routineId = intent.getStringExtra("routineId").toString()
         endUserId = intent.getStringExtra("endUser")
 
@@ -54,7 +52,6 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
         setupFab()
         setupObservers()
 
-        // Fetch routine and steps
         getRoutineWithSteps()
     }
 
@@ -86,13 +83,10 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
         }
 
         viewModel.isLoading.observe(this) { isLoading ->
-            // Handle loading state if needed
+            // TODO: Handle loading state if needed
         }
     }
 
-    /**
-     * Updates the visibility of empty state and recycler view based on whether steps list is empty
-     */
     private fun updateEmptyState(isEmpty: Boolean) {
         if (isEmpty) {
             binding.recyclerViewSteps.visibility = View.GONE
@@ -109,22 +103,18 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
         val title = binding.emptyStateTitle
         val description = binding.emptyStateDescription
 
-        // Initially set alpha to 0 (invisible)
         image.alpha = 0f
         title.alpha = 0f
         description.alpha = 0f
 
-        // Create animation sequences
         image.animate()
             .alpha(1f)
             .setDuration(400)
             .withEndAction {
-                // After image appears, animate the title
                 title.animate()
                     .alpha(1f)
                     .setDuration(400)
                     .withEndAction {
-                        // After title appears, animate the description
                         description.animate()
                             .alpha(1f)
                             .setDuration(400)
@@ -134,7 +124,6 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
             }
             .start()
 
-        // Add a subtle pulse animation to draw attention to the FAB
         binding.fabAddStep.apply {
             animate()
                 .scaleX(1.1f)
@@ -163,7 +152,6 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
             layoutManager = LinearLayoutManager(this@StepListActivity)
         }
 
-        // Setup ItemTouchHelper for drag and drop
         val callback = StepItemTouchHelperCallback(stepAdapter)
         val touchHelper = ItemTouchHelper(callback)
         touchHelper.attachToRecyclerView(binding.recyclerViewSteps)
@@ -171,12 +159,10 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
     }
 
     private fun setupFab() {
-        // Set up FAB button click
         binding.fabAddStep.setOnClickListener {
             navigateToCreateStep()
         }
 
-        // Set up empty state button click
         binding.emptyStateButton.setOnClickListener {
             navigateToCreateStep()
         }
@@ -251,8 +237,6 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
     }
 
     override fun onStepOrderChanged(steps: List<Step>) {
-        // This is called by the adapter when steps are reordered
-        // We don't need to do anything here as the order will be saved when edit mode is exited
         Log.d("StepListActivity", "Step order changed - will be saved on edit mode exit")
     }
 
@@ -274,7 +258,6 @@ class StepListActivity : AppCompatActivity(), StepClickListener {
             step = step
         )
 
-        // After deletion, update the order of remaining steps
         viewModel.updateRemainingStepsOrder(
             endUserId = endUserId ?: return,
             routineId = routineId,

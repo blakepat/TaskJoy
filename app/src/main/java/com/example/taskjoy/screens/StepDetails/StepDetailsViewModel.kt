@@ -15,7 +15,7 @@ class StepDetailsViewModel(
     val repository: RepositoryService = RepositoryService()
 ) : ViewModel() {
 
-    // UI state
+
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
@@ -127,7 +127,6 @@ class StepDetailsViewModel(
 
                 result.fold(
                     onSuccess = {
-                        // Update the local step object
                         _step.value = _step.value?.copy(notes = notes)
                         _saveNotesSuccess.value = true
                     },
@@ -172,7 +171,6 @@ class StepDetailsViewModel(
         }
     }
 
-    // Add this method to StepDetailsViewModel class
     fun areAnyStepsIncomplete(
         endUserId: String,
         routineId: String,
@@ -194,13 +192,11 @@ class StepDetailsViewModel(
                     }
                 )
 
-                // Return result on main thread
                 withContext(Dispatchers.Main) {
                     onResult(hasIncompleteSteps)
                 }
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error checking step completion"
-                // Return true (incomplete) on error
                 withContext(Dispatchers.Main) {
                     onResult(true)
                 }

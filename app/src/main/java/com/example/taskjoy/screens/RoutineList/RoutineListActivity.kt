@@ -35,7 +35,7 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
     private var endUserId: String? = null
     private var selectedDate: Calendar = Calendar.getInstance()
 
-    // Initialize the ViewModel using the by viewModels() delegate
+
     private val viewModel: RoutineListViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,10 +46,8 @@ class RoutineListActivity : AppCompatActivity(), RoutineClickListener {
 
         auth = Firebase.auth
 
-        // Get endUserId from intent if available
         endUserId = intent.getStringExtra("endUser")
 
-        // Get selected date from intent if it exists
         intent.getLongExtra("selectedDate", -1).let { timestamp ->
             if (timestamp != -1L) {
                 selectedDate.timeInMillis = timestamp

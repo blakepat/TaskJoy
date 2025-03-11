@@ -13,7 +13,6 @@ class CreateAccountActivity : AppCompatActivity() {
 
     private lateinit var binding: CreateAccountScreenBinding
 
-    // Initialize the ViewModel using the by viewModels() delegate
     private val viewModel: CreateAccountViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {

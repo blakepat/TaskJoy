@@ -25,7 +25,7 @@ class CreateRoutineActivity : AppCompatActivity() {
     private var selectedIcon: TaskJoyIcon = TaskJoyIcon.MORNING
     private var selectedDate: Calendar = Calendar.getInstance()
 
-    // Initialize the ViewModel using the by viewModels() delegate
+
     private val viewModel: CreateRoutineViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,7 +33,6 @@ class CreateRoutineActivity : AppCompatActivity() {
         binding = CreateRoutineScreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Get routineId, endUser and selectedDate from intent
         routineId = intent.getStringExtra("routineId")
         dailyRoutineId = intent.getStringExtra("dailyRoutineId")
         endUserId = intent.getStringExtra("endUser")
@@ -133,7 +132,7 @@ class CreateRoutineActivity : AppCompatActivity() {
             return
         }
 
-        // Check permissions first
+
         viewModel.checkParentPermission(endUserId ?: return, currentUserId).observe(this) { hasPermission ->
             if (hasPermission) {
                 viewModel.saveRoutine(

@@ -15,9 +15,7 @@ import kotlinx.coroutines.tasks.await
 import java.util.Calendar
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * Firebase implementation of the RoutineRepository interface
- */
+
 class FirebaseRoutineRepository(
     private val db: FirebaseFirestore = Firebase.firestore
 ) : RoutineRepository {
@@ -41,7 +39,7 @@ class FirebaseRoutineRepository(
             if (dailyRoutines.isEmpty) {
                 createDailyRoutinesFromTemplates(endUserId, date)
             } else {
-                Result.success(Unit) // Routines already exist
+                Result.success(Unit)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error checking daily routines", e)
@@ -71,13 +69,11 @@ class FirebaseRoutineRepository(
                 .get()
                 .await()
 
-            // Create a batch for all operations
             val batch = db.batch()
 
             for (template in templates) {
                 val templateData = template.toObject(RoutineTemplate::class.java)
 
-                // Create daily routine document reference
                 val dailyRoutineRef = db.collection("endUser")
                     .document(endUserId)
                     .collection("dailyRoutines")
@@ -220,14 +216,12 @@ class FirebaseRoutineRepository(
             val routineTemplateRef = db.collection("routineTemplates")
                 .document(routine.templateId)
 
-            // First get all the dailySteps
+            // get all dailySteps
             val dailyStepsSnapshot = dailyRoutineRef.collection("dailySteps")
                 .get()
                 .await()
 
-            // Now run the transaction
             db.runTransaction { transaction ->
-                // 1. READS FIRST
                 // Get endUser document
                 val endUserRef = db.collection("endUser").document(endUserId)
                 val endUserDoc = transaction.get(endUserRef)
@@ -235,7 +229,6 @@ class FirebaseRoutineRepository(
                 // Get routine template to check its steps
                 val templateDoc = transaction.get(routineTemplateRef)
 
-                // 2. PROCESS DATA
                 // Update templateIds array
                 val templateIds = if (endUserDoc.exists()) {
                     (endUserDoc.get("routineTemplates") as? MutableList<String> ?: mutableListOf()).apply {
@@ -253,7 +246,6 @@ class FirebaseRoutineRepository(
                     listOf()
                 }
 
-                // 3. WRITES SECOND
                 // Delete all dailySteps
                 dailyStepsSnapshot.documents.forEach { stepDoc ->
                     val stepRef = dailyRoutineRef.collection("dailySteps").document(stepDoc.id)

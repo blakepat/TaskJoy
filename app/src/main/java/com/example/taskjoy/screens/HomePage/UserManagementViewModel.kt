@@ -14,7 +14,7 @@ class UserManagementViewModel(
     private val repository: RepositoryService = RepositoryService()
 ) : ViewModel() {
 
-    // UI state
+
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 

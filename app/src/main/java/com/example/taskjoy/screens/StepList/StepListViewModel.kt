@@ -13,7 +13,7 @@ class StepListViewModel(
     private val repository: RepositoryService = RepositoryService()
 ) : ViewModel() {
 
-    // UI state
+
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
@@ -74,7 +74,6 @@ class StepListViewModel(
 
             repository.updateRemainingStepsOrder(endUserId, routineId, steps).fold(
                 onSuccess = {
-                    // Update local list to ensure UI is consistent
                     _steps.value = steps
                     _isLoading.value = false
                 },
@@ -93,7 +92,6 @@ class StepListViewModel(
 
             repository.deleteStep(endUserId, routineId, step).fold(
                 onSuccess = {
-                    // Update local list after successful deletion
                     _steps.value = _steps.value?.filter { it.id != step.id }
                     _isLoading.value = false
                 },

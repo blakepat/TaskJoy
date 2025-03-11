@@ -14,7 +14,6 @@ class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: LoginScreenBinding
 
-    // Initialize the ViewModel using the by viewModels() delegate
     private val viewModel: LoginViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {

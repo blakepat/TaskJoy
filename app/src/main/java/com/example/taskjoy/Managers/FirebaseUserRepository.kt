@@ -159,7 +159,7 @@ class FirebaseUserRepository(
         updatedChildren.remove(endUserId)
         batch.update(parentRef, "children", updatedChildren)
 
-        // Commit all updates atomically
+        // Commit all updates
         batch.commit().await()
 
         Result.success(Unit)

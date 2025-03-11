@@ -18,22 +18,19 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 class CreateStepActivity : AppCompatActivity() {
     private lateinit var binding: CreateStepScreenBinding
     private lateinit var customIconManager: CustomIconManager
-    private var userId: String = "" // User ID
-    private var routineId: String = "" // Routine ID
-    private var stepId: String? = null // Step ID (null for create, non-null for edit)
-    private var templateStepId: String? = null // Template Step ID
-    private var selectedIcon: TaskJoyIcon = TaskJoyIcon.BRUSHTEETH // Default icon
+    private var userId: String = ""
+    private var routineId: String = ""
+    private var stepId: String? = null
+    private var templateStepId: String? = null
+    private var selectedIcon: TaskJoyIcon = TaskJoyIcon.BRUSHTEETH
     private var selectedCustomIcon: CustomIcon? = null
 
-
-    // Initialize the ViewModel using the by viewModels() delegate
     private val viewModel: CreateStepViewModel by viewModels()
 
     private val selectImageLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
             customIconManager.saveIcon(it)?.let { customIcon ->
                 updateIconAdapter()
-                // Auto-select the newly added custom icon
                 selectedIcon = TaskJoyIcon.CUSTOM
                 selectedCustomIcon = customIcon
             } ?: run {
@@ -71,17 +68,14 @@ class CreateStepActivity : AppCompatActivity() {
         setupClickListeners()
         setupObservers()
 
-        // If we're editing, load the existing step data
         stepId?.let { loadExistingStep(it) }
     }
 
     private fun setupObservers() {
         viewModel.step.observe(this) { step ->
-            // Populate the fields
             binding.etStepName.setText(step.name)
             binding.etStepNotes.setText(step.description)
 
-            // Handle both regular and custom icons
             if (step.customIconPath != null) {
                 selectedIcon = TaskJoyIcon.CUSTOM
                 selectedCustomIcon = CustomIcon(
@@ -96,7 +90,6 @@ class CreateStepActivity : AppCompatActivity() {
                     selectedIcon = TaskJoyIcon.BRUSHTEETH
                 }
             }
-            // Refresh the icon adapter with the new selection
             setupIconRecyclerView()
         }
 
@@ -129,7 +122,6 @@ class CreateStepActivity : AppCompatActivity() {
     }
 
     private fun setupIconRecyclerView() {
-        // Filter out CUSTOM from icons array if there are no custom icons
         val filteredIcons = TaskJoyIcon.entries.filter { icon ->
             if (customIconManager.getAllIcons().isEmpty()) {
                 icon != TaskJoyIcon.CUSTOM
@@ -140,7 +132,7 @@ class CreateStepActivity : AppCompatActivity() {
 
         val iconAdapter = IconAdapter.createWithCustom(
             context = this,
-            icons = filteredIcons,  // Use filtered icons instead
+            icons = filteredIcons,
             customIcons = customIconManager.getAllIcons(),
             selectedIcon = selectedIcon,
             selectedCustomIcon = selectedCustomIcon,
@@ -212,7 +204,6 @@ class CreateStepActivity : AppCompatActivity() {
         val customIconPath = if (selectedIcon == TaskJoyIcon.CUSTOM) selectedCustomIcon?.filepath else null
 
         if (stepId != null) {
-            // Update existing step
             viewModel.updateStep(
                 endUserId = userId,
                 routineId = routineId,
@@ -224,7 +215,6 @@ class CreateStepActivity : AppCompatActivity() {
                 customIconPath = customIconPath
             )
         } else {
-            // Create new step
             viewModel.createStep(
                 endUserId = userId,
                 routineId = routineId,

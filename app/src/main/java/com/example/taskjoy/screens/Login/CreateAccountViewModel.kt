@@ -13,7 +13,6 @@ class CreateAccountViewModel(
     private val authService: AuthService = AuthService()
 ) : ViewModel() {
 
-    // UI state
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
@@ -23,9 +22,6 @@ class CreateAccountViewModel(
     private val _error = MutableLiveData<String?>()
     val error: LiveData<String?> = _error
 
-    /**
-     * Validate the form fields
-     */
     fun validateForm(email: String, name: String, passwordOne: String, passwordTwo: String): Pair<Boolean, String?> {
         if (email.isEmpty() || name.isEmpty() || passwordOne.isEmpty() || passwordTwo.isEmpty()) {
             return Pair(false, "Please ensure all fields are filled out")

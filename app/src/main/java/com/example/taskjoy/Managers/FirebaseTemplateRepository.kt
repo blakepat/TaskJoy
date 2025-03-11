@@ -13,9 +13,7 @@ import kotlinx.coroutines.tasks.await
 import java.util.Calendar
 import kotlin.coroutines.cancellation.CancellationException
 
-/**
- * Firebase implementation of the TemplateRepository interface
- */
+
 class FirebaseTemplateRepository(
     private val db: FirebaseFirestore = Firebase.firestore,
     private val userRepository: UserRepository = FirebaseUserRepository()
@@ -45,7 +43,7 @@ class FirebaseTemplateRepository(
                 } ?: return Result.failure(Exception("Routine not found"))
             }
 
-            // Otherwise check parent permissions
+            // Otherwise check if allowed via parent permission
             val permissionResult = userRepository.checkParentPermission(endUserId, currentUserId)
 
             permissionResult.fold(
